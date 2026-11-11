@@ -7,12 +7,20 @@ using UnityEngine.SceneManagement;
 public enum EstadoJogo { Menu, Jogando, Pausado, GameOver, Vitoria }
 
 /// <summary>
-/// Controla o fluxo geral do jogo: estados, pontuação, vidas e recorde.
+/// Modos de jogo: Ondas (5 ondas e vitória no final) ou Infinito (sobreviver o máximo possível).
+/// </summary>
+public enum ModoJogo { Ondas, Infinito }
+
+/// <summary>
+/// Controla o fluxo geral do jogo: estados, modo, pontuação, vidas, tempo e recordes.
 /// Existe apenas um GameManager na cena (padrão Singleton).
 /// </summary>
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instancia { get; private set; }
+
+    // O modo fica guardado mesmo quando a cena é recarregada (jogar de novo no mesmo modo).
+    public static ModoJogo Modo { get; private set; } = ModoJogo.Ondas;
 
     [Header("Configuração")]
     public int vidasIniciais = 3;
@@ -26,9 +34,11 @@ public class GameManager : MonoBehaviour
     public EstadoJogo Estado { get; private set; }
     public int Pontos { get; private set; }
     public int Vidas { get; private set; }
-    public int Recorde { get; private set; }
+    public float TempoDePartida { get; private set; }
+    public bool NovoRecorde { get; private set; }
 
-    const string CHAVE_RECORDE = "recorde";
+    /// <summary>Modo destacado no menu (escolhido com as setas).</summary>
+    public ModoJogo ModoSelecionado { get; private set; }
 
     // Quando o jogador reinicia, a cena é recarregada e a partida começa direto (sem passar pelo menu).
     static bool iniciarDireto;
@@ -36,7 +46,7 @@ public class GameManager : MonoBehaviour
     void Awake()
     {
         Instancia = this;
-        Recorde = PlayerPrefs.GetInt(CHAVE_RECORDE, 0);
+        ModoSelecionado = Modo;
     }
 
     void Start()
@@ -45,12 +55,15 @@ public class GameManager : MonoBehaviour
         jogador.gameObject.SetActive(false);
         MudarEstado(EstadoJogo.Menu);
 
-        // "-iniciar" na linha de comando também pula o menu (útil para testes).
-        bool argumentoIniciar = System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-iniciar") >= 0;
-        if (iniciarDireto || argumentoIniciar)
+        // Argumentos de linha de comando para testes: "-iniciar" (ondas) ou "-infinito".
+        string[] args = System.Environment.GetCommandLineArgs();
+        if (System.Array.IndexOf(args, "-infinito") >= 0) { IniciarPartida(ModoJogo.Infinito); return; }
+        if (System.Array.IndexOf(args, "-iniciar") >= 0) { IniciarPartida(ModoJogo.Ondas); return; }
+
+        if (iniciarDireto)
         {
             iniciarDireto = false;
-            IniciarPartida();
+            IniciarPartida(Modo);
         }
     }
 
@@ -60,11 +73,11 @@ public class GameManager : MonoBehaviour
         switch (Estado)
         {
             case EstadoJogo.Menu:
-                if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space)) IniciarPartida();
-                if (Input.GetKeyDown(KeyCode.Escape)) Sair();
+                AtualizarMenu();
                 break;
 
             case EstadoJogo.Jogando:
+                TempoDePartida += Time.deltaTime;
                 if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.P)) MudarEstado(EstadoJogo.Pausado);
                 break;
 
@@ -81,6 +94,26 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    void AtualizarMenu()
+    {
+        // Setas / W / S trocam o modo selecionado.
+        bool cima = Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W);
+        bool baixo = Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S);
+        if (cima || baixo)
+        {
+            ModoSelecionado = ModoSelecionado == ModoJogo.Ondas ? ModoJogo.Infinito : ModoJogo.Ondas;
+            ui.AtualizarMenu();
+            AudioManager.Tocar(Som.Acerto, 0.3f);
+        }
+
+        // Atalhos: 1 = Ondas, 2 = Infinito.
+        if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) { IniciarPartida(ModoJogo.Ondas); return; }
+        if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2)) { IniciarPartida(ModoJogo.Infinito); return; }
+
+        if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space)) IniciarPartida(ModoSelecionado);
+        if (Input.GetKeyDown(KeyCode.Escape)) Sair();
+    }
+
     public void MudarEstado(EstadoJogo novo)
     {
         Estado = novo;
@@ -89,15 +122,20 @@ public class GameManager : MonoBehaviour
         ui.MostrarEstado(novo);
     }
 
-    public void IniciarPartida()
+    public void IniciarPartida(ModoJogo modo)
     {
+        Modo = modo;
+        ModoSelecionado = modo;
         Pontos = 0;
         Vidas = vidasIniciais;
+        TempoDePartida = 0f;
+        NovoRecorde = false;
+
         jogador.gameObject.SetActive(true);
         jogador.Resetar();
         MudarEstado(EstadoJogo.Jogando);
         ui.AtualizarHUD();
-        spawner.Iniciar();
+        spawner.Iniciar(modo);
     }
 
     public void AdicionarPontos(int quantidade)
@@ -141,14 +179,32 @@ public class GameManager : MonoBehaviour
         MudarEstado(EstadoJogo.Vitoria);
     }
 
+    // ------------------------------------------------------------------
+    // Recordes (um para cada modo), salvos com PlayerPrefs.
+    // ------------------------------------------------------------------
+
+    public static int Recorde(ModoJogo modo) => PlayerPrefs.GetInt("recorde_" + modo, 0);
+
+    /// <summary>Maior tempo sobrevivido no modo Infinito (em segundos).</summary>
+    public static float MelhorTempo => PlayerPrefs.GetFloat("melhor_tempo", 0f);
+
     void SalvarRecorde()
     {
-        if (Pontos > Recorde)
+        if (Pontos > Recorde(Modo))
         {
-            Recorde = Pontos;
-            PlayerPrefs.SetInt(CHAVE_RECORDE, Recorde);
-            PlayerPrefs.Save();
+            PlayerPrefs.SetInt("recorde_" + Modo, Pontos);
+            NovoRecorde = Pontos > 0;
         }
+        if (Modo == ModoJogo.Infinito && TempoDePartida > MelhorTempo)
+            PlayerPrefs.SetFloat("melhor_tempo", TempoDePartida);
+        PlayerPrefs.Save();
+    }
+
+    /// <summary>Formata segundos como mm:ss.</summary>
+    public static string FormatarTempo(float segundos)
+    {
+        int total = Mathf.FloorToInt(segundos);
+        return (total / 60).ToString("00") + ":" + (total % 60).ToString("00");
     }
 
     void Reiniciar()

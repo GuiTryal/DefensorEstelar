@@ -2,12 +2,21 @@
 
 Jogo 2D de nave (shooter vertical) feito na **Unity 2022.3** para o trabalho individual de Desenvolvimento de Jogos Digitais.
 
-Você controla uma nave que precisa sobreviver a **5 ondas de inimigos**. Destrua os inimigos para ganhar pontos e pegue os itens que eles soltam. Se perder as 3 vidas, é Game Over.
+Você controla uma nave e enfrenta inimigos que descem pela tela. Destrua os inimigos para ganhar pontos e pegue os itens que eles soltam. Se perder as 3 vidas, é Game Over.
+
+## Modos de jogo
+
+- **Modo Ondas:** 5 ondas de inimigos, cada uma mais difícil que a anterior. Vencer a última onda dá a vitória.
+- **Modo Infinito:** os inimigos não param de chegar. A dificuldade aumenta com o tempo (mais inimigos, mais rápidos e mais atiradores) até 2min30s e depois fica no nível máximo. A tela mostra a pontuação e um cronômetro.
+
+Cada modo tem o próprio recorde. No Infinito também fica salvo o maior tempo sobrevivido.
 
 ## Controles
 
 | Tecla | Ação |
 |---|---|
+| Setas (no menu) | Escolher o modo |
+| 1 / 2 (no menu) | Começar direto no modo Ondas / Infinito |
 | Setas / WASD | Mover a nave |
 | Espaço / Z (segurar) | Atirar |
 | P / Esc | Pausar / continuar |
@@ -40,9 +49,10 @@ O menu **Defensor Estelar > Montar Jogo** recria a cena, os sprites e os prefabs
 | Movimentação com Transform | Tiros, inimigos, itens e estrelas do fundo (`transform.position`) |
 | Colisões e interações | Triggers 2D: tiro × inimigo, tiro inimigo × nave, inimigo × nave, item × nave |
 | Pontuação, vidas, vitória e derrota | `GameManager`: pontos, 3 vidas, recorde salvo com `PlayerPrefs`, vitória ao vencer as 5 ondas |
-| Estados e comportamentos | Máquina de estados `EstadoJogo` (Menu, Jogando, Pausado, GameOver, Vitória) e tipos de inimigo (`TipoInimigo`) |
-| Ondas de inimigos | `EnemySpawner`, que usa coroutines e tem as ondas configuráveis no Inspector |
-| Interface e feedback | HUD, avisos na tela, nave piscando quando invencível, inimigo piscando ao levar dano, explosões, câmera tremendo e efeitos sonoros |
+| Estados e comportamentos | Máquina de estados `EstadoJogo` (Menu, Jogando, Pausado, GameOver, Vitória), modos `ModoJogo` (Ondas, Infinito) e tipos de inimigo (`TipoInimigo`) |
+| Geração de inimigos | `EnemySpawner` com coroutines: ondas configuráveis no Inspector e modo infinito com curva de dificuldade (`Mathf.Lerp` até um teto) |
+| Interface e feedback | HUD com pontos, vidas e onda ou cronômetro, avisos na tela, nave piscando quando invencível, inimigo piscando ao levar dano, explosões, câmera tremendo e efeitos sonoros |
+| Resolução | `ProporcaoTela` mantém a área de jogo em 3:4 em qualquer janela. As laterais mostram um cenário espacial com moldura (`MolduraTela`) |
 
 ## Estrutura
 
@@ -60,6 +70,8 @@ Assets/
     CameraShake.cs       tremor da câmera
     Explosion.cs         efeito de explosão
     StarField.cs         fundo de estrelas com parallax
+    ProporcaoTela.cs     mantém a proporção da área de jogo
+    MolduraTela.cs       moldura em volta da área de jogo
   Editor/
     MontadorDoJogo.cs    monta cena, sprites e prefabs automaticamente
   Sprites/  Prefabs/  Scenes/

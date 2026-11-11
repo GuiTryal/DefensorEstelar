@@ -433,13 +433,7 @@ public static class MontadorDoJogo
         camGO.AddComponent<ProporcaoTela>();
         cam.depth = 0;
 
-        // Câmera de fundo: pinta de preto as faixas fora da área de jogo.
-        var fundoCamGO = new GameObject("Camera Faixas Pretas");
-        var fundoCam = fundoCamGO.AddComponent<Camera>();
-        fundoCam.clearFlags = CameraClearFlags.SolidColor;
-        fundoCam.backgroundColor = Color.black;
-        fundoCam.cullingMask = 0;
-        fundoCam.depth = -1;
+        CriarFundoLateral(cam);
 
         // Fundo de estrelas
         var fundo = new GameObject("FundoEstrelas").AddComponent<StarField>();
@@ -477,6 +471,196 @@ public static class MontadorDoJogo
     }
 
     // ------------------------------------------------------------------
+    // Fundo das laterais (fora da área de jogo)
+    // ------------------------------------------------------------------
+
+    /// <summary>
+    /// Cria uma segunda câmera (desenhada antes da principal) que mostra uma imagem
+    /// espacial fixa ocupando a tela toda, mais uma moldura brilhante em volta da área de jogo.
+    /// A câmera principal desenha o jogo por cima, só no retângulo central.
+    /// </summary>
+    static void CriarFundoLateral(Camera camJogo)
+    {
+        Texture2D textura = SalvarTextura("FundoLateral", GerarTexturaFundo());
+
+        // Câmera posicionada longe do jogo, para não enxergar nada além do próprio fundo.
+        var camGO = new GameObject("Camera Fundo Lateral");
+        camGO.transform.position = new Vector3(1000f, 0f, -10f);
+        var cam = camGO.AddComponent<Camera>();
+        cam.orthographic = true;
+        cam.clearFlags = CameraClearFlags.SolidColor;
+        cam.backgroundColor = Color.black;
+        cam.depth = -1;
+
+        var canvasGO = new GameObject("CanvasFundoLateral");
+        canvasGO.transform.SetParent(camGO.transform, false);
+        var canvas = canvasGO.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceCamera;
+        canvas.worldCamera = cam;
+        canvas.planeDistance = 5f;
+        canvasGO.AddComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
+
+        // Imagem de fundo cobrindo a tela toda, sem distorcer.
+        var imagem = CriarRect("ImagemEspaco", canvasGO.transform);
+        Esticar(imagem);
+        imagem.gameObject.AddComponent<RawImage>().texture = textura;
+        var ajuste = imagem.gameObject.AddComponent<AspectRatioFitter>();
+        ajuste.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
+        ajuste.aspectRatio = (float)textura.width / textura.height;
+
+        // Moldura: três camadas para dar um efeito de brilho.
+        var moldura = canvasGO.AddComponent<MolduraTela>();
+        moldura.cameraDoJogo = camJogo;
+        moldura.espessuras = new[] { 12f, 6f, 3f };
+        float[] opacidades = { 0.12f, 0.3f, 0.9f };
+        moldura.camadas = new RectTransform[3];
+        for (int i = 0; i < 3; i++)
+        {
+            var camada = CriarRect("Moldura" + i, canvasGO.transform);
+            var img = camada.gameObject.AddComponent<Image>();
+            img.color = new Color(COR_JOGADOR.r, COR_JOGADOR.g, COR_JOGADOR.b, opacidades[i]);
+            img.raycastTarget = false;
+            moldura.camadas[i] = camada;
+        }
+    }
+
+    /// <summary>Gera uma paisagem espacial em pixel art: nebulosa, estrelas, planeta com anel e lua.</summary>
+    static Texture2D GerarTexturaFundo()
+    {
+        const int L = 320, A = 180;
+        var px = new Color[L * A];
+        var rnd = new System.Random(7);
+
+        Color baixo = new Color(0.01f, 0.01f, 0.04f);
+        Color cima = new Color(0.04f, 0.02f, 0.10f);
+        Color nebulosaRoxa = new Color(0.40f, 0.12f, 0.50f);
+        Color nebulosaAzul = new Color(0.08f, 0.22f, 0.50f);
+
+        // Céu com gradiente e nebulosas (ruído Perlin em "degraus" para parecer pixel art).
+        for (int y = 0; y < A; y++)
+            for (int x = 0; x < L; x++)
+            {
+                Color c = Color.Lerp(baixo, cima, (float)y / A);
+                float n1 = Ruido(x * 0.012f, y * 0.012f, 3.1f);
+                float n2 = Ruido(x * 0.017f, y * 0.017f, 11.7f);
+                c = Color.Lerp(c, nebulosaRoxa, Degraus(Mathf.Clamp01((n1 - 0.45f) * 2.4f), 4) * 0.45f);
+                c = Color.Lerp(c, nebulosaAzul, Degraus(Mathf.Clamp01((n2 - 0.5f) * 2.4f), 4) * 0.35f);
+                px[y * L + x] = c;
+            }
+
+        // Estrelas.
+        float[] brilhos = { 0.3f, 0.55f, 1f };
+        for (int i = 0; i < 280; i++)
+        {
+            int x = rnd.Next(1, L - 1), y = rnd.Next(1, A - 1);
+            float b = brilhos[rnd.Next(brilhos.Length)];
+            px[y * L + x] = Color.Lerp(px[y * L + x], Color.white, b);
+            if (i % 20 == 0) // algumas estrelas maiores, em forma de cruz
+            {
+                foreach (var d in new[] { new Vector2Int(1, 0), new Vector2Int(-1, 0), new Vector2Int(0, 1), new Vector2Int(0, -1) })
+                {
+                    int k = (y + d.y) * L + (x + d.x);
+                    px[k] = Color.Lerp(px[k], Color.white, 0.45f);
+                }
+            }
+        }
+
+        // Planeta com anel (esquerda), lua com crateras (direita) e um planetinha distante.
+        DesenharPlaneta(px, L, A, 50, 92, 30, new Color(0.98f, 0.62f, 0.35f), new Color(0.30f, 0.10f, 0.16f), new Vector3(0.6f, 0.4f, 0.7f), true, false, rnd);
+        DesenharPlaneta(px, L, A, 270, 128, 14, new Color(0.78f, 0.82f, 0.92f), new Color(0.16f, 0.18f, 0.30f), new Vector3(-0.6f, 0.4f, 0.7f), false, true, rnd);
+        DesenharPlaneta(px, L, A, 292, 42, 6, new Color(0.40f, 0.95f, 0.80f), new Color(0.04f, 0.22f, 0.28f), new Vector3(-0.6f, 0.4f, 0.7f), false, false, rnd);
+
+        var tex = new Texture2D(L, A, TextureFormat.RGBA32, false);
+        tex.SetPixels(px);
+        tex.Apply();
+        return tex;
+    }
+
+    static void DesenharPlaneta(Color[] px, int L, int A, int cx, int cy, int r, Color clara, Color escura,
+                                Vector3 luz, bool anel, bool crateras, System.Random rnd)
+    {
+        luz.Normalize();
+
+        // Corpo do planeta com iluminação em "faixas" (5 tons).
+        for (int y = cy - r; y <= cy + r; y++)
+            for (int x = cx - r; x <= cx + r; x++)
+            {
+                if (x < 0 || y < 0 || x >= L || y >= A) continue;
+                float dx = (x - cx) / (float)r, dy = (y - cy) / (float)r;
+                float d2 = dx * dx + dy * dy;
+                if (d2 > 1f) continue;
+                Vector3 normal = new Vector3(dx, dy, Mathf.Sqrt(1f - d2));
+                float luzAqui = Mathf.Max(0f, Vector3.Dot(normal, luz)) * 0.9f + 0.1f;
+                if (anel) luzAqui += Mathf.Sin(dy * 14f) * 0.06f; // faixas de gás
+                px[y * L + x] = Color.Lerp(escura, clara, Degraus(Mathf.Clamp01(luzAqui), 5));
+            }
+
+        if (crateras)
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                int ccx = cx + rnd.Next(-r / 2, r / 2), ccy = cy + rnd.Next(-r / 2, r / 2), cr = rnd.Next(2, 4);
+                for (int y = ccy - cr; y <= ccy + cr; y++)
+                    for (int x = ccx - cr; x <= ccx + cr; x++)
+                        if ((x - ccx) * (x - ccx) + (y - ccy) * (y - ccy) <= cr * cr)
+                            px[y * L + x] *= 0.78f;
+            }
+        }
+
+        if (anel)
+        {
+            float rx = r * 1.9f, ry = r * 0.42f;
+            Color corAnel = new Color(0.95f, 0.85f, 0.65f);
+            for (int y = cy - (int)ry - 1; y <= cy + (int)ry + 1; y++)
+                for (int x = cx - (int)rx - 1; x <= cx + (int)rx + 1; x++)
+                {
+                    if (x < 0 || y < 0 || x >= L || y >= A) continue;
+                    float ex = (x - cx) / rx, ey = (y - cy) / ry;
+                    float e = Mathf.Sqrt(ex * ex + ey * ey);
+                    if (e < 0.75f || e > 1f) continue;
+                    bool dentroDoPlaneta = (x - cx) * (x - cx) + (y - cy) * (y - cy) <= r * r;
+                    if (dentroDoPlaneta && y > cy) continue; // parte de trás do anel fica escondida
+                    float forca = e > 0.88f ? 0.55f : 0.85f;
+                    px[y * L + x] = Color.Lerp(px[y * L + x], corAnel, forca);
+                }
+        }
+    }
+
+    static float Ruido(float x, float y, float semente)
+    {
+        float soma = 0f, amplitude = 1f, frequencia = 1f, total = 0f;
+        for (int i = 0; i < 4; i++)
+        {
+            soma += Mathf.PerlinNoise(x * frequencia + semente, y * frequencia + semente * 2f) * amplitude;
+            total += amplitude;
+            amplitude *= 0.5f;
+            frequencia *= 2f;
+        }
+        return soma / total;
+    }
+
+    static float Degraus(float valor, int niveis) => Mathf.Floor(valor * niveis) / niveis;
+
+    static Texture2D SalvarTextura(string nome, Texture2D tex)
+    {
+        string caminho = PASTA_SPRITES + "/" + nome + ".png";
+        File.WriteAllBytes(caminho, tex.EncodeToPNG());
+        Object.DestroyImmediate(tex);
+        AssetDatabase.ImportAsset(caminho);
+
+        var importador = (TextureImporter)AssetImporter.GetAtPath(caminho);
+        importador.textureType = TextureImporterType.Default;
+        importador.npotScale = TextureImporterNPOTScale.None;
+        importador.filterMode = FilterMode.Point;
+        importador.wrapMode = TextureWrapMode.Clamp;
+        importador.mipmapEnabled = false;
+        importador.textureCompression = TextureImporterCompression.Uncompressed;
+        importador.SaveAndReimport();
+
+        return AssetDatabase.LoadAssetAtPath<Texture2D>(caminho);
+    }
+
+    // ------------------------------------------------------------------
     // Interface (uGUI)
     // ------------------------------------------------------------------
 
@@ -508,7 +692,7 @@ public static class MontadorDoJogo
         ui.hud = hud.gameObject;
         ui.textoPontos = CriarTexto("Pontos", hud, "PONTOS: 0", 26, TextAnchor.UpperLeft, new Vector2(0, 1), new Vector2(20, -15), new Vector2(300, 40), Color.white);
         ui.textoVidas = CriarTexto("Vidas", hud, "VIDAS: 3", 26, TextAnchor.UpperRight, new Vector2(1, 1), new Vector2(-20, -15), new Vector2(250, 40), new Color(0.5f, 1f, 0.6f));
-        ui.textoOnda = CriarTexto("Onda", hud, "", 22, TextAnchor.UpperCenter, new Vector2(0.5f, 1), new Vector2(0, -55), new Vector2(300, 35), new Color(0.8f, 0.8f, 1f));
+        ui.textoOndaOuTempo = CriarTexto("OndaOuTempo", hud, "", 22, TextAnchor.UpperCenter, new Vector2(0.5f, 1), new Vector2(0, -55), new Vector2(300, 35), new Color(0.8f, 0.8f, 1f));
         ui.textoPowerUp = CriarTexto("PowerUp", hud, "", 22, TextAnchor.LowerCenter, new Vector2(0.5f, 0), new Vector2(0, 20), new Vector2(400, 35), COR_POWERUP_TIRO);
 
         // Aviso central (fica fora do HUD para aparecer sempre)
@@ -516,12 +700,16 @@ public static class MontadorDoJogo
 
         // Menu
         var menu = CriarPainel("PainelMenu", raiz, 0.55f);
-        CriarTexto("Titulo", menu, "DEFENSOR\nESTELAR", 72, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, 220), new Vector2(560, 200), COR_JOGADOR);
+        Vector2 centro = new Vector2(0.5f, 0.5f);
+        CriarTexto("Titulo", menu, "DEFENSOR\nESTELAR", 72, TextAnchor.MiddleCenter, centro, new Vector2(0, 250), new Vector2(560, 200), COR_JOGADOR);
         CriarTexto("Instrucoes", menu,
-            "SETAS / WASD  -  mover\nESPAÇO / Z  -  atirar\nP / ESC  -  pausar\n\nSobreviva às 5 ondas de inimigos!\nItens: amarelo = tiro triplo, verde = +1 vida",
-            22, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, -10), new Vector2(560, 220), new Color(0.85f, 0.85f, 0.95f));
-        CriarTexto("Iniciar", menu, "Pressione ENTER para começar", 30, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, -190), new Vector2(560, 50), new Color(1f, 0.9f, 0.3f));
-        ui.textoRecordeMenu = CriarTexto("Recorde", menu, "RECORDE: 0", 24, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, -250), new Vector2(560, 40), Color.white);
+            "SETAS / WASD - mover     ESPAÇO / Z - atirar\nP / ESC - pausar\nItens: amarelo = tiro triplo, verde = +1 vida",
+            20, TextAnchor.MiddleCenter, centro, new Vector2(0, 85), new Vector2(560, 90), new Color(0.85f, 0.85f, 0.95f));
+        ui.textoModoOndas = CriarTexto("ModoOndas", menu, "MODO ONDAS", 34, TextAnchor.MiddleCenter, centro, new Vector2(0, -20), new Vector2(560, 50), Color.white);
+        ui.textoModoInfinito = CriarTexto("ModoInfinito", menu, "MODO INFINITO", 34, TextAnchor.MiddleCenter, centro, new Vector2(0, -70), new Vector2(560, 50), Color.white);
+        ui.textoDescricaoModo = CriarTexto("DescricaoModo", menu, "", 20, TextAnchor.MiddleCenter, centro, new Vector2(0, -122), new Vector2(560, 35), new Color(0.85f, 0.85f, 0.95f));
+        CriarTexto("Dica", menu, "SETAS para escolher  -  ENTER para jogar", 22, TextAnchor.MiddleCenter, centro, new Vector2(0, -185), new Vector2(560, 40), new Color(1f, 0.9f, 0.3f));
+        ui.textoRecordeMenu = CriarTexto("Recorde", menu, "", 20, TextAnchor.MiddleCenter, centro, new Vector2(0, -265), new Vector2(560, 60), Color.white);
         ui.painelMenu = menu.gameObject;
 
         // Pausa
@@ -533,8 +721,8 @@ public static class MontadorDoJogo
         // Game Over
         var gameOver = CriarPainel("PainelGameOver", raiz, 0.65f);
         CriarTexto("Titulo", gameOver, "GAME OVER", 68, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, 130), new Vector2(560, 90), COR_INIMIGO_RETO);
-        ui.textoResultadoGameOver = CriarTexto("Resultado", gameOver, "", 30, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, 10), new Vector2(560, 150), Color.white);
-        CriarTexto("Dica", gameOver, "ENTER para jogar de novo\nESC para o menu", 24, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, -130), new Vector2(560, 80), new Color(1f, 0.9f, 0.3f));
+        ui.textoResultadoGameOver = CriarTexto("Resultado", gameOver, "", 30, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, 0), new Vector2(560, 170), Color.white);
+        CriarTexto("Dica", gameOver, "ENTER para jogar de novo\nESC para o menu", 24, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, -155), new Vector2(560, 80), new Color(1f, 0.9f, 0.3f));
         ui.painelGameOver = gameOver.gameObject;
 
         // Vitória

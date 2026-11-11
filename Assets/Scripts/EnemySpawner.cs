@@ -13,25 +13,47 @@ public class Onda
 }
 
 /// <summary>
-/// Cria os inimigos em ondas. Quando todas as ondas são derrotadas, o jogador vence.
+/// Cria os inimigos.
+/// - Modo Ondas: 5 ondas definidas no Inspector; vencer todas = vitória.
+/// - Modo Infinito: inimigos sem parar, com dificuldade que cresce até um limite e depois se mantém.
 /// </summary>
 public class EnemySpawner : MonoBehaviour
 {
     public Enemy prefabReto;
     public Enemy prefabZigueZague;
+
+    [Header("Modo Ondas")]
     public Onda[] ondas;
     public float pausaEntreOndas = 2.5f;
+
+    [Header("Modo Infinito")]
+    [Tooltip("Segundos até chegar na dificuldade máxima. Depois disso a dificuldade para de subir.")]
+    public float tempoAteDificuldadeMaxima = 150f;
+    public float intervaloInicial = 1.1f;
+    public float intervaloMinimo = 0.32f;
+    public float velocidadeExtraMaxima = 1.6f;
+    [Range(0f, 1f)] public float chanceZigueZagueInicial = 0.08f;
+    [Range(0f, 1f)] public float chanceZigueZagueMaxima = 0.45f;
 
     public int OndaAtual { get; private set; }
     public int TotalOndas => ondas.Length;
 
-    public void Iniciar()
+    /// <summary>Dificuldade atual do modo infinito, de 0 (início) a 1 (máxima).</summary>
+    public float Dificuldade { get; private set; }
+
+    public void Iniciar(ModoJogo modo)
     {
         StopAllCoroutines();
-        StartCoroutine(RodarOndas());
+        OndaAtual = 0;
+        Dificuldade = 0f;
+        StartCoroutine(modo == ModoJogo.Ondas ? RodarOndas() : RodarInfinito());
     }
 
     bool Jogando => GameManager.Instancia.Estado == EstadoJogo.Jogando;
+
+    // ------------------------------------------------------------------
+    // Modo Ondas
+    // ------------------------------------------------------------------
 
     IEnumerator RodarOndas()
     {
@@ -66,6 +88,40 @@ public class EnemySpawner : MonoBehaviour
 
         GameManager.Instancia.Vitoria();
     }
+
+    // ------------------------------------------------------------------
+    // Modo Infinito
+    // ------------------------------------------------------------------
+
+    IEnumerator RodarInfinito()
+    {
+        GameManager.Instancia.ui.MostrarAviso("SOBREVIVA!");
+        yield return new WaitForSeconds(1.5f);
+
+        bool avisouMaxima = false;
+
+        while (Jogando)
+        {
+            // A dificuldade cresce com o tempo de partida e para em 1 (máxima).
+            Dificuldade = Mathf.Clamp01(GameManager.Instancia.TempoDePartida / tempoAteDificuldadeMaxima);
+
+            if (Dificuldade >= 1f && !avisouMaxima)
+            {
+                avisouMaxima = true;
+                GameManager.Instancia.ui.MostrarAviso("DIFICULDADE MÁXIMA!");
+            }
+
+            float chanceZigueZague = Mathf.Lerp(chanceZigueZagueInicial, chanceZigueZagueMaxima, Dificuldade);
+            Enemy prefab = Random.value < chanceZigueZague ? prefabZigueZague : prefabReto;
+            Criar(prefab, Mathf.Lerp(0f, velocidadeExtraMaxima, Dificuldade));
+
+            // Intervalo com uma pequena variação aleatória para não ficar previsível.
+            float intervalo = Mathf.Lerp(intervaloInicial, intervaloMinimo, Dificuldade) * Random.Range(0.8f, 1.2f);
+            yield return new WaitForSeconds(intervalo);
+        }
+    }
+
+    // ------------------------------------------------------------------
 
     void Criar(Enemy prefab, float velocidadeExtra)
     {

@@ -3,8 +3,8 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Interface: HUD (pontos, vidas, onda), avisos na tela e os painéis
-/// de Menu, Pausa, Game Over e Vitória.
+/// Interface: HUD (pontos, vidas, onda ou cronômetro), avisos na tela e os painéis
+/// de Menu (com escolha de modo), Pausa, Game Over e Vitória.
 /// </summary>
 public class UIManager : MonoBehaviour
 {
@@ -12,7 +12,7 @@ public class UIManager : MonoBehaviour
     public GameObject hud;
     public Text textoPontos;
     public Text textoVidas;
-    public Text textoOnda;
+    public Text textoOndaOuTempo;   // "ONDA 2/5" no modo Ondas, "TEMPO 01:23" no Infinito
     public Text textoPowerUp;
     public Text textoAviso;
 
@@ -22,10 +22,18 @@ public class UIManager : MonoBehaviour
     public GameObject painelGameOver;
     public GameObject painelVitoria;
 
-    [Header("Textos dos painéis")]
+    [Header("Menu")]
+    public Text textoModoOndas;
+    public Text textoModoInfinito;
+    public Text textoDescricaoModo;
     public Text textoRecordeMenu;
+
+    [Header("Resultados")]
     public Text textoResultadoGameOver;
     public Text textoResultadoVitoria;
+
+    static readonly Color COR_SELECIONADO = new Color(1f, 0.9f, 0.3f);
+    static readonly Color COR_NAO_SELECIONADO = new Color(0.55f, 0.55f, 0.65f);
 
     Coroutine avisoAtual;
 
@@ -36,30 +44,62 @@ public class UIManager : MonoBehaviour
 
     void Update()
     {
-        // Mostra quanto tempo de tiro triplo ainda resta.
-        PlayerController jogador = GameManager.Instancia.jogador;
+        GameManager gm = GameManager.Instancia;
+
+        // Cronômetro do modo infinito (atualiza todo frame).
+        if (GameManager.Modo == ModoJogo.Infinito && gm.Estado != EstadoJogo.Menu)
+            textoOndaOuTempo.text = "TEMPO " + GameManager.FormatarTempo(gm.TempoDePartida);
+
+        // Tempo restante do tiro triplo.
+        PlayerController jogador = gm.jogador;
         bool mostrar = jogador != null && jogador.gameObject.activeSelf && jogador.TiroTriploAtivo;
         textoPowerUp.text = mostrar ? "TIRO TRIPLO: " + Mathf.CeilToInt(jogador.TempoRestanteTiroTriplo) + "s" : "";
     }
 
     public void MostrarEstado(EstadoJogo estado)
     {
-        GameManager gm = GameManager.Instancia;
-
         painelMenu.SetActive(estado == EstadoJogo.Menu);
         painelPausa.SetActive(estado == EstadoJogo.Pausado);
         painelGameOver.SetActive(estado == EstadoJogo.GameOver);
         painelVitoria.SetActive(estado == EstadoJogo.Vitoria);
         hud.SetActive(estado != EstadoJogo.Menu);
 
-        textoRecordeMenu.text = "RECORDE: " + gm.Recorde;
+        if (estado == EstadoJogo.Menu) AtualizarMenu();
+        if (estado == EstadoJogo.GameOver || estado == EstadoJogo.Vitoria) AtualizarResultado();
+        if (estado != EstadoJogo.Jogando && estado != EstadoJogo.Pausado) textoAviso.text = "";
+    }
 
-        string resultado = "PONTOS: " + gm.Pontos + "\nRECORDE: " + gm.Recorde;
-        if (gm.Pontos > 0 && gm.Pontos >= gm.Recorde) resultado += "\n\nNOVO RECORDE!";
+    /// <summary>Destaca o modo selecionado e mostra os recordes no menu.</summary>
+    public void AtualizarMenu()
+    {
+        bool ondas = GameManager.Instancia.ModoSelecionado == ModoJogo.Ondas;
+
+        textoModoOndas.text = ondas ? "> MODO ONDAS <" : "MODO ONDAS";
+        textoModoOndas.color = ondas ? COR_SELECIONADO : COR_NAO_SELECIONADO;
+        textoModoInfinito.text = !ondas ? "> MODO INFINITO <" : "MODO INFINITO";
+        textoModoInfinito.color = !ondas ? COR_SELECIONADO : COR_NAO_SELECIONADO;
+
+        textoDescricaoModo.text = ondas
+            ? "Vença as 5 ondas de inimigos!"
+            : "Inimigos sem parar. Sobreviva o máximo que puder!";
+
+        textoRecordeMenu.text =
+            "RECORDE ONDAS: " + GameManager.Recorde(ModoJogo.Ondas) +
+            "\nRECORDE INFINITO: " + GameManager.Recorde(ModoJogo.Infinito) +
+            "  (" + GameManager.FormatarTempo(GameManager.MelhorTempo) + ")";
+    }
+
+    void AtualizarResultado()
+    {
+        GameManager gm = GameManager.Instancia;
+        string resultado = "PONTOS: " + gm.Pontos;
+        if (GameManager.Modo == ModoJogo.Infinito)
+            resultado += "\nTEMPO: " + GameManager.FormatarTempo(gm.TempoDePartida);
+        resultado += "\nRECORDE: " + GameManager.Recorde(GameManager.Modo);
+        if (gm.NovoRecorde) resultado += "\n\nNOVO RECORDE!";
+
         textoResultadoGameOver.text = resultado;
         textoResultadoVitoria.text = resultado;
-
-        if (estado != EstadoJogo.Jogando && estado != EstadoJogo.Pausado) textoAviso.text = "";
     }
 
     public void AtualizarHUD()
@@ -67,7 +107,11 @@ public class UIManager : MonoBehaviour
         GameManager gm = GameManager.Instancia;
         textoPontos.text = "PONTOS: " + gm.Pontos;
         textoVidas.text = "VIDAS: " + gm.Vidas;
-        textoOnda.text = gm.spawner.OndaAtual > 0 ? "ONDA " + gm.spawner.OndaAtual + "/" + gm.spawner.TotalOndas : "";
+
+        if (GameManager.Modo == ModoJogo.Ondas)
+            textoOndaOuTempo.text = gm.spawner.OndaAtual > 0 ? "ONDA " + gm.spawner.OndaAtual + "/" + gm.spawner.TotalOndas : "";
+        else
+            textoOndaOuTempo.text = "TEMPO " + GameManager.FormatarTempo(gm.TempoDePartida);
     }
 
     public void MostrarAviso(string mensagem)
