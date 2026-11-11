@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public enum TipoPowerUp { TiroTriplo, VidaExtra }
+public enum TipoPowerUp { TiroTriplo, VidaExtra, Escudo }
 
 /// <summary>
 /// Item que cai de inimigos destruídos. Ao encostar na nave, dá um bônus.
@@ -9,7 +9,8 @@ public class PowerUp : MonoBehaviour
 {
     public TipoPowerUp tipo = TipoPowerUp.TiroTriplo;
     public float velocidade = 1.5f;
-    public float duracaoTiroTriplo = 8f;
+    public float duracaoTiroTriplo = 6f;
+    public float duracaoEscudo = 10f;
 
     Vector3 escalaOriginal;
 
@@ -31,15 +32,22 @@ public class PowerUp : MonoBehaviour
         PlayerController jogador = outro.GetComponent<PlayerController>();
         if (jogador == null) return;
 
-        if (tipo == TipoPowerUp.TiroTriplo)
+        switch (tipo)
         {
-            jogador.AtivarTiroTriplo(duracaoTiroTriplo);
-            GameManager.Instancia.ui.MostrarAviso("TIRO TRIPLO!");
-        }
-        else
-        {
-            GameManager.Instancia.GanharVida();
-            GameManager.Instancia.ui.MostrarAviso("+1 VIDA!");
+            case TipoPowerUp.TiroTriplo:
+                jogador.AtivarTiroTriplo(duracaoTiroTriplo);
+                GameManager.Instancia.ui.MostrarAviso("TIRO TRIPLO!");
+                break;
+
+            case TipoPowerUp.Escudo:
+                jogador.AtivarEscudo(duracaoEscudo);
+                GameManager.Instancia.ui.MostrarAviso("ESCUDO!");
+                break;
+
+            case TipoPowerUp.VidaExtra:
+                GameManager.Instancia.GanharVida();
+                GameManager.Instancia.ui.MostrarAviso("+1 VIDA!");
+                break;
         }
 
         AudioManager.Tocar(Som.PowerUp);

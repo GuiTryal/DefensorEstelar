@@ -163,4 +163,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   tipo: 1
   velocidade: 1.5
-  duracaoTiroTriplo: 8
+  duracaoTiroTriplo: 6
+  duracaoEscudo: 10

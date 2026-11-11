@@ -179,9 +179,15 @@ MonoBehaviour:
   pontos: 250
   prefabTiro: {fileID: 6478912605544812508, guid: a59c7be8c011741498bd2b56816c8918, type: 3}
   intervaloTiro: 1.8
+  alturaParada: 2.6
+  tempoAtacando: 7
+  velocidadeLateral: 1.4
+  anguloLeque: 22
   prefabExplosao: {fileID: 6323998463116656050, guid: 08ca27d5338e53045b437cae6c1d7562, type: 3}
   prefabsPowerUp:
   - {fileID: 1979271122699733299, guid: 22e7aaf685ee3c7478213c9a64160da6, type: 3}
   - {fileID: 1979271122699733299, guid: 22e7aaf685ee3c7478213c9a64160da6, type: 3}
+  - {fileID: 319855120153342426, guid: 2d18e8839973c5f42af88b7abf57256e, type: 3}
+  - {fileID: 319855120153342426, guid: 2d18e8839973c5f42af88b7abf57256e, type: 3}
   - {fileID: 6231954041095039082, guid: 7afca03a22c566548a5d847f6eb547d6, type: 3}
-  chancePowerUp: 0.25
+  chancePowerUp: 0.15

@@ -37,7 +37,9 @@ O menu **Defensor Estelar > Montar Jogo** recria a cena, os sprites e os prefabs
 
 - **Inimigo vermelho:** desce reto e rápido. 1 de vida, vale 100 pontos.
 - **Inimigo roxo:** desce em zigue-zague e atira na direção da nave. 3 de vida, vale 250 pontos.
-- **Item amarelo:** tiro triplo por 8 segundos.
+- **Tanque laranja:** desce, para no alto da tela, patrulha de um lado para o outro atirando em leque (3 tiros) por 7 segundos e depois vai embora. 8 de vida, vale 500 pontos e costuma soltar um item. Tem uma máquina de estados própria (`FaseTanque`: Entrando, Atacando, Saindo).
+- **Item amarelo:** tiro triplo por 6 segundos (atira um pouco mais devagar enquanto ativo).
+- **Item azul:** escudo por 10 segundos, que absorve um golpe.
 - **Item verde:** +1 vida (máximo de 5).
 
 ## Conceitos aplicados

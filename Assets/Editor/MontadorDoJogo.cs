@@ -71,6 +71,40 @@ public static class MontadorDoJogo
         "....#......#....",
     };
 
+    static readonly string[] ARTE_TANQUE =
+    {
+        "...####..........####...",
+        "..######........######..",
+        ".######################.",
+        "########################",
+        "##++####++++++++####++##",
+        "########++++++++########",
+        ".#######++####++#######.",
+        "..######++####++######..",
+        "...#####++++++++#####...",
+        "....#######++#######....",
+        ".....######..######.....",
+        "......###..##..###......",
+        ".......#...##...#.......",
+        "...........##...........",
+    };
+
+    static readonly string[] ARTE_POWERUP_ESCUDO =
+    {
+        "...######...",
+        "..#......#..",
+        ".#..####..#.",
+        "#..######..#",
+        "#..######..#",
+        "#..######..#",
+        "#..######..#",
+        "#...####...#",
+        "#....##....#",
+        ".#........#.",
+        "..#......#..",
+        "...######...",
+    };
+
     static readonly string[] ARTE_TIRO =
     {
         "##", "##", "##", "##", "##", "++",
@@ -169,7 +203,7 @@ public static class MontadorDoJogo
 
     class Sprites
     {
-        public Sprite nave, inimigoReto, inimigoZigueZague, tiro, tiroInimigo, powerUpTiro, powerUpVida, estrela, circulo;
+        public Sprite nave, inimigoReto, inimigoZigueZague, tanque, tiro, tiroInimigo, powerUpTiro, powerUpVida, powerUpEscudo, estrela, circulo, anel;
     }
 
     static Sprites GerarSprites()
@@ -185,6 +219,9 @@ public static class MontadorDoJogo
             powerUpVida = SalvarSprite("PowerUpVida", TexturaDeArte(ARTE_POWERUP_VIDA)),
             estrela = SalvarSprite("Estrela", TexturaDeArte(ARTE_ESTRELA)),
             circulo = SalvarSprite("Circulo", TexturaCirculo(16)),
+            tanque = SalvarSprite("Tanque", TexturaDeArte(ARTE_TANQUE)),
+            powerUpEscudo = SalvarSprite("PowerUpEscudo", TexturaDeArte(ARTE_POWERUP_ESCUDO)),
+            anel = SalvarSprite("Escudo", TexturaAnel(32)),
         };
         return s;
     }
@@ -225,6 +262,25 @@ public static class MontadorDoJogo
         return tex;
     }
 
+    /// <summary>Bolha do escudo: borda forte e miolo bem transparente.</summary>
+    static Texture2D TexturaAnel(int tamanho)
+    {
+        var tex = new Texture2D(tamanho, tamanho, TextureFormat.RGBA32, false);
+        float centro = (tamanho - 1) / 2f;
+        float raio = tamanho / 2f - 0.5f;
+        for (int y = 0; y < tamanho; y++)
+            for (int x = 0; x < tamanho; x++)
+            {
+                float d = Vector2.Distance(new Vector2(x, y), new Vector2(centro, centro));
+                Color c = Color.clear;
+                if (d <= raio && d > raio - 2f) c = Color.white;
+                else if (d <= raio - 2f) c = new Color(1f, 1f, 1f, 0.2f);
+                tex.SetPixel(x, y, c);
+            }
+        tex.Apply();
+        return tex;
+    }
+
     static Sprite SalvarSprite(string nome, Texture2D tex)
     {
         string caminho = PASTA_SPRITES + "/" + nome + ".png";
@@ -253,8 +309,8 @@ public static class MontadorDoJogo
     {
         public Bullet tiro, tiroInimigo;
         public Explosion explosao;
-        public PowerUp powerUpTiro, powerUpVida;
-        public Enemy inimigoReto, inimigoZigueZague;
+        public PowerUp powerUpTiro, powerUpVida, powerUpEscudo;
+        public Enemy inimigoReto, inimigoZigueZague, tanque;
         public PlayerController jogador;
     }
 
@@ -265,6 +321,8 @@ public static class MontadorDoJogo
     static readonly Color COR_INIMIGO_ZIGUEZAGUE = new Color(0.75f, 0.45f, 1f);
     static readonly Color COR_POWERUP_TIRO = new Color(1f, 0.8f, 0.2f);
     static readonly Color COR_POWERUP_VIDA = new Color(0.35f, 1f, 0.45f);
+    static readonly Color COR_POWERUP_ESCUDO = new Color(0.4f, 0.65f, 1f);
+    static readonly Color COR_TANQUE = new Color(1f, 0.55f, 0.15f);
 
     static Prefabs CriarPrefabs(Sprites s)
     {
@@ -306,7 +364,9 @@ public static class MontadorDoJogo
         // Power-ups
         p.powerUpTiro = CriarPowerUp("PowerUpTiroTriplo", s.powerUpTiro, COR_POWERUP_TIRO, TipoPowerUp.TiroTriplo);
         p.powerUpVida = CriarPowerUp("PowerUpVida", s.powerUpVida, COR_POWERUP_VIDA, TipoPowerUp.VidaExtra);
-        var powerUps = new[] { p.powerUpTiro, p.powerUpTiro, p.powerUpVida }; // tiro triplo é 2x mais comum
+        p.powerUpEscudo = CriarPowerUp("PowerUpEscudo", s.powerUpEscudo, COR_POWERUP_ESCUDO, TipoPowerUp.Escudo);
+        // Sorteio com pesos: tiro triplo e escudo são 2x mais comuns que vida extra.
+        var powerUps = new[] { p.powerUpTiro, p.powerUpTiro, p.powerUpEscudo, p.powerUpEscudo, p.powerUpVida };
 
         // Inimigo reto
         {
@@ -322,7 +382,7 @@ public static class MontadorDoJogo
             e.pontos = 100;
             e.prefabExplosao = p.explosao;
             e.prefabsPowerUp = powerUps;
-            e.chancePowerUp = 0.1f;
+            e.chancePowerUp = 0.05f;
             p.inimigoReto = SalvarPrefab(go).GetComponent<Enemy>();
         }
 
@@ -344,8 +404,31 @@ public static class MontadorDoJogo
             e.intervaloTiro = 1.8f;
             e.prefabExplosao = p.explosao;
             e.prefabsPowerUp = powerUps;
-            e.chancePowerUp = 0.25f;
+            e.chancePowerUp = 0.15f;
             p.inimigoZigueZague = SalvarPrefab(go).GetComponent<Enemy>();
+        }
+
+        // Tanque (resistente, para no alto e atira em leque)
+        {
+            GameObject go = ObjetoComSprite("Tanque", s.tanque, COR_TANQUE, 11);
+            var col = go.AddComponent<BoxCollider2D>();
+            col.isTrigger = true;
+            col.size = new Vector2(1.4f, 0.7f);
+            CorpoCinematico(go);
+            var e = go.AddComponent<Enemy>();
+            e.tipo = TipoInimigo.Tanque;
+            e.velocidade = 1.8f;
+            e.vida = 8;
+            e.pontos = 500;
+            e.prefabTiro = p.tiroInimigo;
+            e.intervaloTiro = 1.5f;
+            e.alturaParada = 2.6f;
+            e.tempoAtacando = 7f;
+            e.velocidadeLateral = 1.4f;
+            e.prefabExplosao = p.explosao;
+            e.prefabsPowerUp = powerUps;
+            e.chancePowerUp = 0.7f;
+            p.tanque = SalvarPrefab(go).GetComponent<Enemy>();
         }
 
         // Jogador (física: Rigidbody2D dinâmico sem gravidade)
@@ -364,10 +447,22 @@ public static class MontadorDoJogo
             ponto.SetParent(go.transform);
             ponto.localPosition = new Vector3(0f, 0.55f, 0f);
 
+            // Bolha do escudo (fica escondida até pegar o power-up).
+            var escudo = new GameObject("Escudo");
+            escudo.transform.SetParent(go.transform);
+            escudo.transform.localPosition = Vector3.zero;
+            escudo.transform.localScale = Vector3.one * 0.8f;
+            var srEscudo = escudo.AddComponent<SpriteRenderer>();
+            srEscudo.sprite = s.anel;
+            srEscudo.color = new Color(0.45f, 0.75f, 1f, 0.5f);
+            srEscudo.sortingOrder = 16;
+            srEscudo.enabled = false;
+
             var pc = go.AddComponent<PlayerController>();
             pc.prefabTiro = p.tiro;
             pc.pontoDeTiro = ponto;
             pc.prefabExplosao = p.explosao;
+            pc.visualEscudo = srEscudo;
             p.jogador = SalvarPrefab(go).GetComponent<PlayerController>();
         }
 
@@ -451,13 +546,14 @@ public static class MontadorDoJogo
         var spawner = gmGO.AddComponent<EnemySpawner>();
         spawner.prefabReto = p.inimigoReto;
         spawner.prefabZigueZague = p.inimigoZigueZague;
+        spawner.prefabTanque = p.tanque;
         spawner.ondas = new[]
         {
-            new Onda { quantidadeRetos = 6,  quantidadeZigueZague = 0,  intervaloEntreInimigos = 0.9f,  velocidadeExtra = 0f },
-            new Onda { quantidadeRetos = 8,  quantidadeZigueZague = 2,  intervaloEntreInimigos = 0.8f,  velocidadeExtra = 0.2f },
-            new Onda { quantidadeRetos = 8,  quantidadeZigueZague = 4,  intervaloEntreInimigos = 0.7f,  velocidadeExtra = 0.4f },
-            new Onda { quantidadeRetos = 12, quantidadeZigueZague = 6,  intervaloEntreInimigos = 0.55f, velocidadeExtra = 0.6f },
-            new Onda { quantidadeRetos = 14, quantidadeZigueZague = 10, intervaloEntreInimigos = 0.45f, velocidadeExtra = 0.9f },
+            new Onda { quantidadeRetos = 6,  quantidadeZigueZague = 0, quantidadeTanques = 0, intervaloEntreInimigos = 0.9f,  velocidadeExtra = 0f },
+            new Onda { quantidadeRetos = 8,  quantidadeZigueZague = 2, quantidadeTanques = 0, intervaloEntreInimigos = 0.8f,  velocidadeExtra = 0.2f },
+            new Onda { quantidadeRetos = 8,  quantidadeZigueZague = 4, quantidadeTanques = 1, intervaloEntreInimigos = 0.75f, velocidadeExtra = 0.3f },
+            new Onda { quantidadeRetos = 12, quantidadeZigueZague = 5, quantidadeTanques = 1, intervaloEntreInimigos = 0.65f, velocidadeExtra = 0.5f },
+            new Onda { quantidadeRetos = 14, quantidadeZigueZague = 7, quantidadeTanques = 2, intervaloEntreInimigos = 0.55f, velocidadeExtra = 0.7f },
         };
 
         UIManager ui = CriarInterface(cam);
@@ -703,7 +799,7 @@ public static class MontadorDoJogo
         Vector2 centro = new Vector2(0.5f, 0.5f);
         CriarTexto("Titulo", menu, "DEFENSOR\nESTELAR", 72, TextAnchor.MiddleCenter, centro, new Vector2(0, 250), new Vector2(560, 200), COR_JOGADOR);
         CriarTexto("Instrucoes", menu,
-            "SETAS / WASD - mover     ESPAÇO / Z - atirar\nP / ESC - pausar\nItens: amarelo = tiro triplo, verde = +1 vida",
+            "SETAS / WASD - mover     ESPAÇO / Z - atirar\nP / ESC - pausar\nItens: amarelo = tiro triplo, azul = escudo, verde = +1 vida",
             20, TextAnchor.MiddleCenter, centro, new Vector2(0, 85), new Vector2(560, 90), new Color(0.85f, 0.85f, 0.95f));
         ui.textoModoOndas = CriarTexto("ModoOndas", menu, "MODO ONDAS", 34, TextAnchor.MiddleCenter, centro, new Vector2(0, -20), new Vector2(560, 50), Color.white);
         ui.textoModoInfinito = CriarTexto("ModoInfinito", menu, "MODO INFINITO", 34, TextAnchor.MiddleCenter, centro, new Vector2(0, -70), new Vector2(560, 50), Color.white);

@@ -15,11 +15,16 @@ public class PlayerController : MonoBehaviour
     public Bullet prefabTiro;
     public Transform pontoDeTiro;
     public float intervaloTiro = 0.18f;
-    public float anguloTiroTriplo = 12f;
+    [Tooltip("Com o tiro triplo a cadência fica mais lenta, para equilibrar.")]
+    public float intervaloTiroTriplo = 0.28f;
+    public float anguloTiroTriplo = 15f;
 
     [Header("Dano")]
     public float tempoInvencivel = 1.5f;
     public Explosion prefabExplosao;
+
+    [Header("Escudo")]
+    public SpriteRenderer visualEscudo;
 
     Rigidbody2D rb;
     SpriteRenderer sr;
@@ -29,10 +34,13 @@ public class PlayerController : MonoBehaviour
     float proximoTiro;
     float fimInvencivel;
     float fimTiroTriplo;
+    float fimEscudo;
 
     public bool Invencivel => Time.time < fimInvencivel;
     public bool TiroTriploAtivo => Time.time < fimTiroTriplo;
     public float TempoRestanteTiroTriplo => Mathf.Max(0f, fimTiroTriplo - Time.time);
+    public bool EscudoAtivo => Time.time < fimEscudo;
+    public float TempoRestanteEscudo => Mathf.Max(0f, fimEscudo - Time.time);
 
     void Awake()
     {
@@ -48,6 +56,7 @@ public class PlayerController : MonoBehaviour
         rb.velocity = Vector2.zero;
         fimInvencivel = Time.time + tempoInvencivel;
         fimTiroTriplo = 0f;
+        fimEscudo = 0f;
     }
 
     void Update()
@@ -67,7 +76,7 @@ public class PlayerController : MonoBehaviour
         if (atirando && Time.time >= proximoTiro)
         {
             Atirar();
-            proximoTiro = Time.time + intervaloTiro;
+            proximoTiro = Time.time + (TiroTriploAtivo ? intervaloTiroTriplo : intervaloTiro);
         }
 
         AtualizarVisual();
@@ -113,6 +122,17 @@ public class PlayerController : MonoBehaviour
     {
         if (Invencivel || GameManager.Instancia.Estado != EstadoJogo.Jogando) return;
 
+        // O escudo absorve o golpe e se desfaz.
+        if (EscudoAtivo)
+        {
+            fimEscudo = 0f;
+            fimInvencivel = Time.time + 0.5f;
+            AudioManager.Tocar(Som.Acerto);
+            CameraShake.Tremer(0.12f, 0.12f);
+            GameManager.Instancia.ui.MostrarAviso("ESCUDO QUEBROU!");
+            return;
+        }
+
         fimInvencivel = Time.time + tempoInvencivel;
         GameManager.Instancia.PerderVida();
     }
@@ -120,6 +140,11 @@ public class PlayerController : MonoBehaviour
     public void AtivarTiroTriplo(float duracao)
     {
         fimTiroTriplo = Time.time + duracao;
+    }
+
+    public void AtivarEscudo(float duracao)
+    {
+        fimEscudo = Time.time + duracao;
     }
 
     public void Explodir()
@@ -139,5 +164,15 @@ public class PlayerController : MonoBehaviour
     {
         sr.enabled = !Invencivel || Mathf.Repeat(Time.time * 12f, 1f) > 0.5f;
         sr.color = TiroTriploAtivo ? Color.Lerp(corOriginal, new Color(1f, 0.85f, 0.3f), 0.6f) : corOriginal;
+
+        // Bolha do escudo: pulsa e pisca quando está acabando.
+        if (visualEscudo != null)
+        {
+            bool acabando = TempoRestanteEscudo < 2f && Mathf.Repeat(Time.time * 6f, 1f) < 0.5f;
+            visualEscudo.enabled = EscudoAtivo && !acabando;
+            Color c = visualEscudo.color;
+            c.a = 0.45f + Mathf.Sin(Time.time * 6f) * 0.15f;
+            visualEscudo.color = c;
+        }
     }
 }

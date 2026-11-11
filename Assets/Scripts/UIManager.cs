@@ -50,10 +50,15 @@ public class UIManager : MonoBehaviour
         if (GameManager.Modo == ModoJogo.Infinito && gm.Estado != EstadoJogo.Menu)
             textoOndaOuTempo.text = "TEMPO " + GameManager.FormatarTempo(gm.TempoDePartida);
 
-        // Tempo restante do tiro triplo.
+        // Tempo restante dos poderes ativos.
         PlayerController jogador = gm.jogador;
-        bool mostrar = jogador != null && jogador.gameObject.activeSelf && jogador.TiroTriploAtivo;
-        textoPowerUp.text = mostrar ? "TIRO TRIPLO: " + Mathf.CeilToInt(jogador.TempoRestanteTiroTriplo) + "s" : "";
+        string poderes = "";
+        if (jogador != null && jogador.gameObject.activeSelf)
+        {
+            if (jogador.TiroTriploAtivo) poderes += "TIRO TRIPLO: " + Mathf.CeilToInt(jogador.TempoRestanteTiroTriplo) + "s";
+            if (jogador.EscudoAtivo) poderes += (poderes.Length > 0 ? "\n" : "") + "ESCUDO: " + Mathf.CeilToInt(jogador.TempoRestanteEscudo) + "s";
+        }
+        textoPowerUp.text = poderes;
     }
 
     public void MostrarEstado(EstadoJogo estado)

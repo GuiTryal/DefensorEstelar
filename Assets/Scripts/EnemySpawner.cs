@@ -8,6 +8,7 @@ public class Onda
 {
     public int quantidadeRetos = 5;
     public int quantidadeZigueZague = 0;
+    public int quantidadeTanques = 0;
     public float intervaloEntreInimigos = 0.8f;
     public float velocidadeExtra = 0f;
 }
@@ -21,6 +22,7 @@ public class EnemySpawner : MonoBehaviour
 {
     public Enemy prefabReto;
     public Enemy prefabZigueZague;
+    public Enemy prefabTanque;
 
     [Header("Modo Ondas")]
     public Onda[] ondas;
@@ -29,11 +31,15 @@ public class EnemySpawner : MonoBehaviour
     [Header("Modo Infinito")]
     [Tooltip("Segundos até chegar na dificuldade máxima. Depois disso a dificuldade para de subir.")]
     public float tempoAteDificuldadeMaxima = 150f;
-    public float intervaloInicial = 1.1f;
-    public float intervaloMinimo = 0.32f;
-    public float velocidadeExtraMaxima = 1.6f;
+    public float intervaloInicial = 1.15f;
+    public float intervaloMinimo = 0.5f;
+    public float velocidadeExtraMaxima = 1.0f;
     [Range(0f, 1f)] public float chanceZigueZagueInicial = 0.08f;
-    [Range(0f, 1f)] public float chanceZigueZagueMaxima = 0.45f;
+    [Range(0f, 1f)] public float chanceZigueZagueMaxima = 0.28f;
+    [Tooltip("Tanques só começam a aparecer depois desta dificuldade (0 a 1).")]
+    [Range(0f, 1f)] public float dificuldadeMinimaTanque = 0.25f;
+    [Range(0f, 1f)] public float chanceTanqueMaxima = 0.07f;
+    public int maxTanquesAoMesmoTempo = 1;
 
     public int OndaAtual { get; private set; }
     public int TotalOndas => ondas.Length;
@@ -69,6 +75,7 @@ public class EnemySpawner : MonoBehaviour
             List<Enemy> fila = new List<Enemy>();
             for (int r = 0; r < onda.quantidadeRetos; r++) fila.Add(prefabReto);
             for (int z = 0; z < onda.quantidadeZigueZague; z++) fila.Add(prefabZigueZague);
+            for (int t = 0; t < onda.quantidadeTanques; t++) fila.Add(prefabTanque);
             Embaralhar(fila);
 
             foreach (Enemy prefab in fila)
@@ -111,14 +118,25 @@ public class EnemySpawner : MonoBehaviour
                 GameManager.Instancia.ui.MostrarAviso("DIFICULDADE MÁXIMA!");
             }
 
-            float chanceZigueZague = Mathf.Lerp(chanceZigueZagueInicial, chanceZigueZagueMaxima, Dificuldade);
-            Enemy prefab = Random.value < chanceZigueZague ? prefabZigueZague : prefabReto;
-            Criar(prefab, Mathf.Lerp(0f, velocidadeExtraMaxima, Dificuldade));
+            Criar(SortearInimigo(), Mathf.Lerp(0f, velocidadeExtraMaxima, Dificuldade));
 
             // Intervalo com uma pequena variação aleatória para não ficar previsível.
             float intervalo = Mathf.Lerp(intervaloInicial, intervaloMinimo, Dificuldade) * Random.Range(0.8f, 1.2f);
             yield return new WaitForSeconds(intervalo);
         }
+    }
+
+    /// <summary>Escolhe o próximo inimigo do modo infinito, conforme a dificuldade atual.</summary>
+    Enemy SortearInimigo()
+    {
+        // Tanque: só depois de uma dificuldade mínima e com limite de quantos ao mesmo tempo.
+        float progressoTanque = Mathf.InverseLerp(dificuldadeMinimaTanque, 1f, Dificuldade);
+        bool podeTanque = Dificuldade >= dificuldadeMinimaTanque && Enemy.TanquesVivos < maxTanquesAoMesmoTempo;
+        if (podeTanque && Random.value < Mathf.Lerp(0.02f, chanceTanqueMaxima, progressoTanque))
+            return prefabTanque;
+
+        float chanceZigueZague = Mathf.Lerp(chanceZigueZagueInicial, chanceZigueZagueMaxima, Dificuldade);
+        return Random.value < chanceZigueZague ? prefabZigueZague : prefabReto;
     }
 
     // ------------------------------------------------------------------
@@ -127,7 +145,8 @@ public class EnemySpawner : MonoBehaviour
     {
         Camera cam = Camera.main;
         float meiaLargura = cam.orthographicSize * cam.aspect;
-        float margem = prefab.tipo == TipoInimigo.ZigueZague ? prefab.amplitude + 0.5f : 0.6f;
+        float margem = prefab.tipo == TipoInimigo.ZigueZague ? prefab.amplitude + 0.5f
+                     : prefab.tipo == TipoInimigo.Tanque ? 1f : 0.6f;
         float limiteX = Mathf.Max(0f, meiaLargura - margem);
 
         Vector3 posicao = new Vector3(Random.Range(-limiteX, limiteX), cam.orthographicSize + 1f, 0f);
