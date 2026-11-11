@@ -282,8 +282,8 @@ MonoBehaviour:
   margemTela: 0.5
   prefabTiro: {fileID: 5537011404859427451, guid: 7a7380c03abbca942ac4c6be4883886c, type: 3}
   pontoDeTiro: {fileID: 8030198575916681164}
-  intervaloTiro: 0.18
-  intervaloTiroTriplo: 0.28
+  intervaloTiro: 0.13
+  intervaloTiroTriplo: 0.24
   anguloTiroTriplo: 15
   tempoInvencivel: 1.5
   prefabExplosao: {fileID: 6323998463116656050, guid: 08ca27d5338e53045b437cae6c1d7562, type: 3}

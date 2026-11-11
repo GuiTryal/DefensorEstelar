@@ -190,4 +190,4 @@ MonoBehaviour:
   - {fileID: 319855120153342426, guid: 2d18e8839973c5f42af88b7abf57256e, type: 3}
   - {fileID: 319855120153342426, guid: 2d18e8839973c5f42af88b7abf57256e, type: 3}
   - {fileID: 6231954041095039082, guid: 7afca03a22c566548a5d847f6eb547d6, type: 3}
-  chancePowerUp: 0.7
+  chancePowerUp: 1

@@ -14,9 +14,9 @@ public class PlayerController : MonoBehaviour
     [Header("Tiro")]
     public Bullet prefabTiro;
     public Transform pontoDeTiro;
-    public float intervaloTiro = 0.18f;
+    public float intervaloTiro = 0.13f;
     [Tooltip("Com o tiro triplo a cadência fica mais lenta, para equilibrar.")]
-    public float intervaloTiroTriplo = 0.28f;
+    public float intervaloTiroTriplo = 0.24f;
     public float anguloTiroTriplo = 15f;
 
     [Header("Dano")]

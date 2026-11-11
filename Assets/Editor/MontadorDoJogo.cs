@@ -427,7 +427,7 @@ public static class MontadorDoJogo
             e.velocidadeLateral = 1.4f;
             e.prefabExplosao = p.explosao;
             e.prefabsPowerUp = powerUps;
-            e.chancePowerUp = 0.7f;
+            e.chancePowerUp = 1f; // o tanque sempre solta um poder
             p.tanque = SalvarPrefab(go).GetComponent<Enemy>();
         }
 
