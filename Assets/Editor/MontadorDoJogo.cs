@@ -430,6 +430,16 @@ public static class MontadorDoJogo
         camGO.transform.position = new Vector3(0f, 0f, -10f);
         camGO.AddComponent<AudioListener>();
         camGO.AddComponent<CameraShake>();
+        camGO.AddComponent<ProporcaoTela>();
+        cam.depth = 0;
+
+        // Câmera de fundo: pinta de preto as faixas fora da área de jogo.
+        var fundoCamGO = new GameObject("Camera Faixas Pretas");
+        var fundoCam = fundoCamGO.AddComponent<Camera>();
+        fundoCam.clearFlags = CameraClearFlags.SolidColor;
+        fundoCam.backgroundColor = Color.black;
+        fundoCam.cullingMask = 0;
+        fundoCam.depth = -1;
 
         // Fundo de estrelas
         var fundo = new GameObject("FundoEstrelas").AddComponent<StarField>();
@@ -456,7 +466,7 @@ public static class MontadorDoJogo
             new Onda { quantidadeRetos = 14, quantidadeZigueZague = 10, intervaloEntreInimigos = 0.45f, velocidadeExtra = 0.9f },
         };
 
-        UIManager ui = CriarInterface();
+        UIManager ui = CriarInterface(cam);
 
         gm.jogador = jogador.GetComponent<PlayerController>();
         gm.spawner = spawner;
@@ -472,13 +482,17 @@ public static class MontadorDoJogo
 
     static Font fonte;
 
-    static UIManager CriarInterface()
+    static UIManager CriarInterface(Camera cam)
     {
         fonte = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
+        // Canvas preso à câmera: a interface ocupa só a área de jogo (sem as faixas pretas).
         var canvasGO = new GameObject("Canvas");
         var canvas = canvasGO.AddComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.renderMode = RenderMode.ScreenSpaceCamera;
+        canvas.worldCamera = cam;
+        canvas.planeDistance = 5f;
+        canvas.sortingOrder = 100; // acima de todos os sprites
         var scaler = canvasGO.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(600, 800);
