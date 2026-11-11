@@ -154,6 +154,18 @@ public static class MontadorDoJogo
 
     static readonly string[] ARTE_ESTRELA = { "#" };
 
+    static readonly string[] ARTE_CORACAO =
+    {
+        ".##...##.",
+        "####.####",
+        "#########",
+        "#########",
+        ".#######.",
+        "..#####..",
+        "...###...",
+        "....#....",
+    };
+
     // ------------------------------------------------------------------
     // Menu principal
     // ------------------------------------------------------------------
@@ -203,7 +215,7 @@ public static class MontadorDoJogo
 
     class Sprites
     {
-        public Sprite nave, inimigoReto, inimigoZigueZague, tanque, tiro, tiroInimigo, powerUpTiro, powerUpVida, powerUpEscudo, estrela, circulo, anel;
+        public Sprite nave, inimigoReto, inimigoZigueZague, tanque, tiro, tiroInimigo, powerUpTiro, powerUpVida, powerUpEscudo, estrela, circulo, anel, coracao;
     }
 
     static Sprites GerarSprites()
@@ -218,6 +230,7 @@ public static class MontadorDoJogo
             powerUpTiro = SalvarSprite("PowerUpTiro", TexturaDeArte(ARTE_POWERUP_TIRO)),
             powerUpVida = SalvarSprite("PowerUpVida", TexturaDeArte(ARTE_POWERUP_VIDA)),
             estrela = SalvarSprite("Estrela", TexturaDeArte(ARTE_ESTRELA)),
+            coracao = SalvarSprite("Coracao", TexturaDeArte(ARTE_CORACAO)),
             circulo = SalvarSprite("Circulo", TexturaCirculo(16)),
             tanque = SalvarSprite("Tanque", TexturaDeArte(ARTE_TANQUE)),
             powerUpEscudo = SalvarSprite("PowerUpEscudo", TexturaDeArte(ARTE_POWERUP_ESCUDO)),
@@ -769,6 +782,8 @@ public static class MontadorDoJogo
         eventos.AddComponent<UnityEngine.EventSystems.EventSystem>();
         eventos.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
 
+        spriteCaixa = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+
         fonte = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
         // Canvas preso à câmera: a interface ocupa só a área de jogo (sem as faixas pretas).
@@ -791,13 +806,11 @@ public static class MontadorDoJogo
         var hud = CriarRect("HUD", raiz);
         Esticar(hud);
         ui.hud = hud.gameObject;
-        ui.textoPontos = CriarTexto("Pontos", hud, "PONTOS: 0", 26, TextAnchor.UpperLeft, new Vector2(0, 1), new Vector2(20, -15), new Vector2(300, 40), Color.white);
-        ui.textoVidas = CriarTexto("Vidas", hud, "VIDAS: 3", 26, TextAnchor.UpperRight, new Vector2(1, 1), new Vector2(-20, -15), new Vector2(250, 40), new Color(0.5f, 1f, 0.6f));
-        ui.textoOndaOuTempo = CriarTexto("OndaOuTempo", hud, "", 22, TextAnchor.UpperCenter, new Vector2(0.5f, 1), new Vector2(0, -55), new Vector2(300, 35), new Color(0.8f, 0.8f, 1f));
-        ui.textoPowerUp = CriarTexto("PowerUp", hud, "", 22, TextAnchor.LowerCenter, new Vector2(0.5f, 0), new Vector2(0, 20), new Vector2(400, 35), COR_POWERUP_TIRO);
+        CriarHUD(hud, ui, s);
 
         // Aviso central (fica fora do HUD para aparecer sempre)
         ui.textoAviso = CriarTexto("Aviso", raiz, "", 48, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, 80), new Vector2(560, 80), new Color(1f, 0.9f, 0.3f));
+        Contorno(ui.textoAviso, new Color(0.35f, 0.15f, 0.02f));
 
         // Menu
         var menu = CriarPainel("PainelMenu", raiz, 0.3f);
@@ -806,20 +819,20 @@ public static class MontadorDoJogo
 
         // Pausa
         var pausa = CriarPainel("PainelPausa", raiz, 0.6f);
-        CriarTexto("Titulo", pausa, "PAUSADO", 64, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, 60), new Vector2(560, 90), Color.white);
+        Contorno(CriarTexto("Titulo", pausa, "PAUSADO", 64, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, 60), new Vector2(560, 90), Color.white), new Color(0.02f, 0.1f, 0.3f));
         CriarTexto("Dica", pausa, "P / ESC para continuar\nM para voltar ao menu", 26, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, -40), new Vector2(560, 80), new Color(0.85f, 0.85f, 0.95f));
         ui.painelPausa = pausa.gameObject;
 
         // Game Over
         var gameOver = CriarPainel("PainelGameOver", raiz, 0.65f);
-        CriarTexto("Titulo", gameOver, "GAME OVER", 68, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, 130), new Vector2(560, 90), COR_INIMIGO_RETO);
+        Contorno(CriarTexto("Titulo", gameOver, "GAME OVER", 68, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, 130), new Vector2(560, 90), COR_INIMIGO_RETO), new Color(0.3f, 0.02f, 0.05f));
         ui.textoResultadoGameOver = CriarTexto("Resultado", gameOver, "", 30, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, 0), new Vector2(560, 170), Color.white);
         CriarTexto("Dica", gameOver, "ENTER para jogar de novo\nESC para o menu", 24, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, -155), new Vector2(560, 80), new Color(1f, 0.9f, 0.3f));
         ui.painelGameOver = gameOver.gameObject;
 
         // Vitória
         var vitoria = CriarPainel("PainelVitoria", raiz, 0.65f);
-        CriarTexto("Titulo", vitoria, "VITÓRIA!", 68, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, 150), new Vector2(560, 90), COR_POWERUP_VIDA);
+        Contorno(CriarTexto("Titulo", vitoria, "VITÓRIA!", 68, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, 150), new Vector2(560, 90), COR_POWERUP_VIDA), new Color(0.02f, 0.25f, 0.08f));
         CriarTexto("Sub", vitoria, "Você defendeu a galáxia!", 28, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, 85), new Vector2(560, 50), Color.white);
         ui.textoResultadoVitoria = CriarTexto("Resultado", vitoria, "", 30, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, -15), new Vector2(560, 150), Color.white);
         CriarTexto("Dica", vitoria, "ENTER para jogar de novo\nESC para o menu", 24, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, -140), new Vector2(560, 80), new Color(1f, 0.9f, 0.3f));
@@ -836,13 +849,103 @@ public static class MontadorDoJogo
     // Menu principal
     // ------------------------------------------------------------------
 
+    static void CriarHUD(RectTransform hud, UIManager ui, Sprites s)
+    {
+        Vector2 topoEsq = new Vector2(0, 1), topoDir = new Vector2(1, 1), topoCentro = new Vector2(0.5f, 1);
+
+        // Faixa escura atrás do topo, para dar leitura.
+        var faixa = CriarRect("FaixaTopo", hud);
+        faixa.anchorMin = new Vector2(0, 1);
+        faixa.anchorMax = new Vector2(1, 1);
+        faixa.pivot = new Vector2(0.5f, 1);
+        faixa.sizeDelta = new Vector2(0, 84);
+        var imgFaixa = faixa.gameObject.AddComponent<Image>();
+        imgFaixa.color = new Color(0.01f, 0.02f, 0.08f, 0.6f);
+        imgFaixa.raycastTarget = false;
+        var linha = CriarRect("LinhaFaixa", faixa);
+        linha.anchorMin = new Vector2(0, 0);
+        linha.anchorMax = new Vector2(1, 0);
+        linha.sizeDelta = new Vector2(0, 2);
+        var imgLinha = linha.gameObject.AddComponent<Image>();
+        imgLinha.color = new Color(COR_JOGADOR.r, COR_JOGADOR.g, COR_JOGADOR.b, 0.35f);
+        imgLinha.raycastTarget = false;
+
+        // Pontos: rótulo pequeno + número grande.
+        CriarTexto("RotuloPontos", hud, "PONTOS", 14, TextAnchor.UpperLeft, topoEsq, new Vector2(20, -10), new Vector2(200, 20), COR_TEXTO_SUAVE);
+        ui.textoPontos = CriarTexto("Pontos", hud, "0", 34, TextAnchor.UpperLeft, topoEsq, new Vector2(18, -28), new Vector2(260, 44), Color.white);
+        Contorno(ui.textoPontos, new Color(0.02f, 0.1f, 0.3f));
+
+        // Vidas: rótulo + fileira de corações (5 = máximo de vidas).
+        CriarTexto("RotuloVidas", hud, "VIDAS", 14, TextAnchor.UpperRight, topoDir, new Vector2(-20, -10), new Vector2(200, 20), COR_TEXTO_SUAVE);
+        ui.coracoes = new Image[5];
+        for (int i = 0; i < 5; i++)
+        {
+            var rt = CriarRect("Coracao" + (i + 1), hud);
+            rt.anchorMin = rt.anchorMax = topoDir;
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = new Vector2(-34 - (4 - i) * 33, -50);
+            rt.sizeDelta = new Vector2(27, 24);
+            var img = rt.gameObject.AddComponent<Image>();
+            img.sprite = s.coracao;
+            img.preserveAspect = true;
+            img.raycastTarget = false;
+            var sombra = rt.gameObject.AddComponent<Shadow>();
+            sombra.effectColor = new Color(0, 0, 0, 0.8f);
+            sombra.effectDistance = new Vector2(2, -2);
+            ui.coracoes[i] = img;
+        }
+
+        // Caixinha central: ONDA x/5 ou TEMPO mm:ss.
+        var caixa = CriarCaixa("CaixaCentro", hud, new Color(0.35f, 0.85f, 1f, 0.8f), Vector2.zero, new Vector2(124, 58), true);
+        caixa.anchorMin = caixa.anchorMax = topoCentro;
+        caixa.pivot = new Vector2(0.5f, 1);
+        caixa.anchoredPosition = new Vector2(0, -12);
+        caixa.GetComponent<Image>().raycastTarget = false;
+        var miolo = CriarCaixa("Miolo", caixa, new Color(0.04f, 0.08f, 0.2f, 0.95f), Vector2.zero, Vector2.zero, true);
+        Esticar(miolo);
+        miolo.offsetMin = new Vector2(2, 2);
+        miolo.offsetMax = new Vector2(-2, -2);
+        miolo.GetComponent<Image>().raycastTarget = false;
+        Vector2 c = new Vector2(0.5f, 0.5f);
+        ui.textoRotuloCentro = CriarTexto("Rotulo", caixa, "ONDA", 13, TextAnchor.MiddleCenter, c, new Vector2(0, 15), new Vector2(120, 18), COR_TEXTO_SUAVE);
+        ui.textoValorCentro = CriarTexto("Valor", caixa, "1/5", 26, TextAnchor.MiddleCenter, c, new Vector2(0, -8), new Vector2(120, 32), new Color(1f, 0.9f, 0.4f));
+
+        // Barras dos poderes ativos (parte de baixo da tela).
+        ui.indicadorEscudo = CriarIndicadorPoder(hud, "IndicadorEscudo", s.powerUpEscudo, COR_POWERUP_ESCUDO, 22f);
+        ui.indicadorTiroTriplo = CriarIndicadorPoder(hud, "IndicadorTiroTriplo", s.powerUpTiro, COR_POWERUP_TIRO, 54f);
+    }
+
+    static IndicadorPoder CriarIndicadorPoder(Transform pai, string nome, Sprite icone, Color cor, float y)
+    {
+        var raiz = CriarRect(nome, pai);
+        raiz.anchorMin = raiz.anchorMax = new Vector2(0.5f, 0f);
+        raiz.pivot = new Vector2(0.5f, 0.5f);
+        raiz.anchoredPosition = new Vector2(0, y);
+        raiz.sizeDelta = new Vector2(240, 26);
+
+        CriarIcone("Icone", raiz, icone, cor, new Vector2(-100, 0), new Vector2(24, 24));
+
+        var fundo = CriarCaixa("Barra", raiz, new Color(0.08f, 0.1f, 0.2f, 0.9f), new Vector2(10, 0), new Vector2(170, 12), true);
+        fundo.GetComponent<Image>().raycastTarget = false;
+        var cheio = CriarCaixa("Preenchimento", fundo, cor, Vector2.zero, Vector2.zero, true);
+        cheio.GetComponent<Image>().raycastTarget = false;
+        cheio.anchorMin = new Vector2(0, 0);
+        cheio.anchorMax = new Vector2(1, 1);
+        cheio.offsetMin = new Vector2(2, 2);
+        cheio.offsetMax = new Vector2(-2, -2);
+
+        var segundos = CriarTexto("Segundos", raiz, "", 16, TextAnchor.MiddleLeft, new Vector2(0.5f, 0.5f), new Vector2(122, 0), new Vector2(40, 24), cor);
+        raiz.gameObject.SetActive(false);
+
+        return new IndicadorPoder { raiz = raiz.gameObject, preenchimento = cheio, segundos = segundos };
+    }
+
     static readonly Color COR_TITULO_2 = new Color(1f, 0.82f, 0.3f);
     static readonly Color COR_TEXTO_SUAVE = new Color(0.7f, 0.74f, 0.88f);
     static Sprite spriteCaixa;
 
     static void CriarMenu(RectTransform menu, UIManager ui, Sprites s)
     {
-        spriteCaixa = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
         Vector2 c = new Vector2(0.5f, 0.5f);
         var anim = menu.gameObject.AddComponent<MenuAnimado>();
 

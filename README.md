@@ -53,7 +53,7 @@ O menu **Defensor Estelar > Montar Jogo** recria a cena, os sprites e os prefabs
 | Pontuação, vidas, vitória e derrota | `GameManager`: pontos, 3 vidas, recorde salvo com `PlayerPrefs`, vitória ao vencer as 5 ondas |
 | Estados e comportamentos | Máquina de estados `EstadoJogo` (Menu, Jogando, Pausado, GameOver, Vitória), modos `ModoJogo` (Ondas, Infinito) e tipos de inimigo (`TipoInimigo`) |
 | Geração de inimigos | `EnemySpawner` com coroutines: ondas configuráveis no Inspector e modo infinito com curva de dificuldade (`Mathf.Lerp` até um teto) |
-| Interface e feedback | Menu animado com cartões de modo (teclado e mouse, via `CartaoModo` e `MenuAnimado`), HUD com pontos, vidas e onda ou cronômetro, avisos na tela, nave piscando quando invencível, inimigo piscando ao levar dano, explosões, câmera tremendo e efeitos sonoros |
+| Interface e feedback | Menu animado com cartões de modo (teclado e mouse, via `CartaoModo` e `MenuAnimado`), HUD com pontos animados, corações de vida, onda ou cronômetro e barras de tempo dos poderes, avisos na tela, nave piscando quando invencível, inimigo piscando ao levar dano, explosões, câmera tremendo e efeitos sonoros |
 | Resolução | `ProporcaoTela` mantém a área de jogo em 3:4 em qualquer janela. As laterais mostram um cenário espacial com moldura (`MolduraTela`) |
 
 ## Estrutura

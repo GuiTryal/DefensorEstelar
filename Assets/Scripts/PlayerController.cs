@@ -41,6 +41,8 @@ public class PlayerController : MonoBehaviour
     public float TempoRestanteTiroTriplo => Mathf.Max(0f, fimTiroTriplo - Time.time);
     public bool EscudoAtivo => Time.time < fimEscudo;
     public float TempoRestanteEscudo => Mathf.Max(0f, fimEscudo - Time.time);
+    public float DuracaoTiroTriplo { get; private set; } = 1f;
+    public float DuracaoEscudo { get; private set; } = 1f;
 
     void Awake()
     {
@@ -140,11 +142,13 @@ public class PlayerController : MonoBehaviour
     public void AtivarTiroTriplo(float duracao)
     {
         fimTiroTriplo = Time.time + duracao;
+        DuracaoTiroTriplo = duracao;
     }
 
     public void AtivarEscudo(float duracao)
     {
         fimEscudo = Time.time + duracao;
+        DuracaoEscudo = duracao;
     }
 
     public void Explodir()
