@@ -96,15 +96,11 @@ public class GameManager : MonoBehaviour
 
     void AtualizarMenu()
     {
-        // Setas / W / S trocam o modo selecionado.
-        bool cima = Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W);
-        bool baixo = Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S);
-        if (cima || baixo)
-        {
-            ModoSelecionado = ModoSelecionado == ModoJogo.Ondas ? ModoJogo.Infinito : ModoJogo.Ondas;
-            ui.AtualizarMenu();
-            AudioManager.Tocar(Som.Acerto, 0.3f);
-        }
+        // Setas / WASD trocam o modo selecionado.
+        if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
+            SelecionarModo(ModoJogo.Ondas);
+        if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S))
+            SelecionarModo(ModoJogo.Infinito);
 
         // Atalhos: 1 = Ondas, 2 = Infinito.
         if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) { IniciarPartida(ModoJogo.Ondas); return; }
@@ -112,6 +108,15 @@ public class GameManager : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space)) IniciarPartida(ModoSelecionado);
         if (Input.GetKeyDown(KeyCode.Escape)) Sair();
+    }
+
+    /// <summary>Destaca um modo no menu (teclado ou mouse).</summary>
+    public void SelecionarModo(ModoJogo modo)
+    {
+        if (Estado != EstadoJogo.Menu || modo == ModoSelecionado) return;
+        ModoSelecionado = modo;
+        ui.AtualizarMenu();
+        AudioManager.Tocar(Som.Acerto, 0.3f);
     }
 
     public void MudarEstado(EstadoJogo novo)

@@ -23,17 +23,12 @@ public class UIManager : MonoBehaviour
     public GameObject painelVitoria;
 
     [Header("Menu")]
-    public Text textoModoOndas;
-    public Text textoModoInfinito;
-    public Text textoDescricaoModo;
-    public Text textoRecordeMenu;
+    public CartaoModo cartaoOndas;
+    public CartaoModo cartaoInfinito;
 
     [Header("Resultados")]
     public Text textoResultadoGameOver;
     public Text textoResultadoVitoria;
-
-    static readonly Color COR_SELECIONADO = new Color(1f, 0.9f, 0.3f);
-    static readonly Color COR_NAO_SELECIONADO = new Color(0.55f, 0.55f, 0.65f);
 
     Coroutine avisoAtual;
 
@@ -78,20 +73,12 @@ public class UIManager : MonoBehaviour
     public void AtualizarMenu()
     {
         bool ondas = GameManager.Instancia.ModoSelecionado == ModoJogo.Ondas;
+        cartaoOndas.Destacar(ondas);
+        cartaoInfinito.Destacar(!ondas);
 
-        textoModoOndas.text = ondas ? "> MODO ONDAS <" : "MODO ONDAS";
-        textoModoOndas.color = ondas ? COR_SELECIONADO : COR_NAO_SELECIONADO;
-        textoModoInfinito.text = !ondas ? "> MODO INFINITO <" : "MODO INFINITO";
-        textoModoInfinito.color = !ondas ? COR_SELECIONADO : COR_NAO_SELECIONADO;
-
-        textoDescricaoModo.text = ondas
-            ? "Vença as 5 ondas de inimigos!"
-            : "Inimigos sem parar. Sobreviva o máximo que puder!";
-
-        textoRecordeMenu.text =
-            "RECORDE ONDAS: " + GameManager.Recorde(ModoJogo.Ondas) +
-            "\nRECORDE INFINITO: " + GameManager.Recorde(ModoJogo.Infinito) +
-            "  (" + GameManager.FormatarTempo(GameManager.MelhorTempo) + ")";
+        cartaoOndas.recorde.text = "RECORDE: " + GameManager.Recorde(ModoJogo.Ondas);
+        cartaoInfinito.recorde.text = "RECORDE: " + GameManager.Recorde(ModoJogo.Infinito) +
+                                      "  -  " + GameManager.FormatarTempo(GameManager.MelhorTempo);
     }
 
     void AtualizarResultado()

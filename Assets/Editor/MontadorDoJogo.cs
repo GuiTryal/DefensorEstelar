@@ -556,7 +556,7 @@ public static class MontadorDoJogo
             new Onda { quantidadeRetos = 14, quantidadeZigueZague = 7, quantidadeTanques = 2, intervaloEntreInimigos = 0.55f, velocidadeExtra = 0.7f },
         };
 
-        UIManager ui = CriarInterface(cam);
+        UIManager ui = CriarInterface(cam, s);
 
         gm.jogador = jogador.GetComponent<PlayerController>();
         gm.spawner = spawner;
@@ -762,8 +762,13 @@ public static class MontadorDoJogo
 
     static Font fonte;
 
-    static UIManager CriarInterface(Camera cam)
+    static UIManager CriarInterface(Camera cam, Sprites s)
     {
+        // Sistema de eventos: necessário para o mouse funcionar nos cartões do menu.
+        var eventos = new GameObject("EventSystem");
+        eventos.AddComponent<UnityEngine.EventSystems.EventSystem>();
+        eventos.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
+
         fonte = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
         // Canvas preso à câmera: a interface ocupa só a área de jogo (sem as faixas pretas).
@@ -795,17 +800,8 @@ public static class MontadorDoJogo
         ui.textoAviso = CriarTexto("Aviso", raiz, "", 48, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, 80), new Vector2(560, 80), new Color(1f, 0.9f, 0.3f));
 
         // Menu
-        var menu = CriarPainel("PainelMenu", raiz, 0.55f);
-        Vector2 centro = new Vector2(0.5f, 0.5f);
-        CriarTexto("Titulo", menu, "DEFENSOR\nESTELAR", 72, TextAnchor.MiddleCenter, centro, new Vector2(0, 250), new Vector2(560, 200), COR_JOGADOR);
-        CriarTexto("Instrucoes", menu,
-            "SETAS / WASD - mover     ESPAÇO / Z - atirar\nP / ESC - pausar\nItens: amarelo = tiro triplo, azul = escudo, verde = +1 vida",
-            20, TextAnchor.MiddleCenter, centro, new Vector2(0, 85), new Vector2(560, 90), new Color(0.85f, 0.85f, 0.95f));
-        ui.textoModoOndas = CriarTexto("ModoOndas", menu, "MODO ONDAS", 34, TextAnchor.MiddleCenter, centro, new Vector2(0, -20), new Vector2(560, 50), Color.white);
-        ui.textoModoInfinito = CriarTexto("ModoInfinito", menu, "MODO INFINITO", 34, TextAnchor.MiddleCenter, centro, new Vector2(0, -70), new Vector2(560, 50), Color.white);
-        ui.textoDescricaoModo = CriarTexto("DescricaoModo", menu, "", 20, TextAnchor.MiddleCenter, centro, new Vector2(0, -122), new Vector2(560, 35), new Color(0.85f, 0.85f, 0.95f));
-        CriarTexto("Dica", menu, "SETAS para escolher  -  ENTER para jogar", 22, TextAnchor.MiddleCenter, centro, new Vector2(0, -185), new Vector2(560, 40), new Color(1f, 0.9f, 0.3f));
-        ui.textoRecordeMenu = CriarTexto("Recorde", menu, "", 20, TextAnchor.MiddleCenter, centro, new Vector2(0, -265), new Vector2(560, 60), Color.white);
+        var menu = CriarPainel("PainelMenu", raiz, 0.3f);
+        CriarMenu(menu, ui, s);
         ui.painelMenu = menu.gameObject;
 
         // Pausa
@@ -834,6 +830,148 @@ public static class MontadorDoJogo
         vitoria.gameObject.SetActive(false);
 
         return ui;
+    }
+
+    // ------------------------------------------------------------------
+    // Menu principal
+    // ------------------------------------------------------------------
+
+    static readonly Color COR_TITULO_2 = new Color(1f, 0.82f, 0.3f);
+    static readonly Color COR_TEXTO_SUAVE = new Color(0.7f, 0.74f, 0.88f);
+    static Sprite spriteCaixa;
+
+    static void CriarMenu(RectTransform menu, UIManager ui, Sprites s)
+    {
+        spriteCaixa = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+        Vector2 c = new Vector2(0.5f, 0.5f);
+        var anim = menu.gameObject.AddComponent<MenuAnimado>();
+
+        // Naves decorativas
+        anim.nave = CriarIcone("NaveMenu", menu, s.nave, COR_JOGADOR, new Vector2(0, 312), new Vector2(64, 64));
+        anim.inimigoEsquerda = CriarIcone("InimigoEsquerda", menu, s.inimigoReto, COR_INIMIGO_RETO, new Vector2(-200, 292), new Vector2(52, 39));
+        anim.inimigoDireita = CriarIcone("InimigoDireita", menu, s.inimigoZigueZague, COR_INIMIGO_ZIGUEZAGUE, new Vector2(200, 292), new Vector2(56, 35));
+
+        // Título em duas cores, com contorno
+        Text t1 = CriarTexto("Titulo1", menu, "DEFENSOR", 78, TextAnchor.MiddleCenter, c, new Vector2(0, 222), new Vector2(580, 90), COR_JOGADOR);
+        Text t2 = CriarTexto("Titulo2", menu, "ESTELAR", 78, TextAnchor.MiddleCenter, c, new Vector2(0, 150), new Vector2(580, 90), COR_TITULO_2);
+        Contorno(t1, new Color(0.02f, 0.1f, 0.3f));
+        Contorno(t2, new Color(0.35f, 0.15f, 0.02f));
+        anim.titulos = new[] { t1.rectTransform, t2.rectTransform };
+
+        // Divisória "ESCOLHA O MODO"
+        CriarTexto("EscolhaModo", menu, "ESCOLHA O MODO", 18, TextAnchor.MiddleCenter, c, new Vector2(0, 85), new Vector2(250, 30), COR_TEXTO_SUAVE);
+        CriarCaixa("LinhaEsquerda", menu, new Color(0.35f, 0.85f, 1f, 0.5f), new Vector2(-185, 85), new Vector2(150, 2), false);
+        CriarCaixa("LinhaDireita", menu, new Color(0.35f, 0.85f, 1f, 0.5f), new Vector2(185, 85), new Vector2(150, 2), false);
+
+        // Cartões dos modos
+        ui.cartaoOndas = CriarCartao(menu, "CartaoOndas", ModoJogo.Ondas, -138f, s.inimigoReto, COR_INIMIGO_RETO, new Vector2(48, 36),
+                                     "ONDAS", "5 ondas de inimigos.\nVença a onda final!", "1");
+        ui.cartaoInfinito = CriarCartao(menu, "CartaoInfinito", ModoJogo.Infinito, 138f, s.tanque, COR_TANQUE, new Vector2(62, 36),
+                                        "INFINITO", "Inimigos sem parar.\nAté onde você chega?", "2");
+
+        // Chamada para jogar (pisca)
+        anim.textoPiscando = CriarTexto("PressioneEnter", menu, "PRESSIONE ENTER PARA JOGAR", 26, TextAnchor.MiddleCenter, c, new Vector2(0, -177), new Vector2(560, 40), COR_TITULO_2);
+        CriarTexto("DicaEscolha", menu, "SETAS ou MOUSE para escolher   |   ESC para sair", 15, TextAnchor.MiddleCenter, c, new Vector2(0, -205), new Vector2(560, 24), COR_TEXTO_SUAVE);
+
+        // Caixa de informações: controles e poderes
+        var info = CriarCaixa("Informacoes", menu, new Color(0.03f, 0.05f, 0.12f, 0.88f), new Vector2(0, -300), new Vector2(540, 120), true);
+
+        CriarTecla(info, "SETAS / WASD", -200f, 120f, 28f);
+        CriarRotulo(info, "mover", -132f, 28f, 70f);
+        CriarTecla(info, "ESPAÇO", -10f, 84f, 28f);
+        CriarRotulo(info, "atirar", 40f, 28f, 60f);
+        CriarTecla(info, "P", 135f, 32f, 28f);
+        CriarRotulo(info, "pausar", 159f, 28f, 80f);
+
+        CriarIcone("IconeTiroTriplo", info, s.powerUpTiro, COR_POWERUP_TIRO, new Vector2(-185, -28), new Vector2(26, 26));
+        CriarRotulo(info, "Tiro triplo", -165f, -28f, 110f);
+        CriarIcone("IconeEscudo", info, s.powerUpEscudo, COR_POWERUP_ESCUDO, new Vector2(-15, -28), new Vector2(26, 26));
+        CriarRotulo(info, "Escudo", 5f, -28f, 80f);
+        CriarIcone("IconeVida", info, s.powerUpVida, COR_POWERUP_VIDA, new Vector2(125, -28), new Vector2(26, 26));
+        CriarRotulo(info, "+1 vida", 145f, -28f, 80f);
+    }
+
+    static CartaoModo CriarCartao(Transform pai, string nome, ModoJogo modo, float x, Sprite icone, Color corIcone, Vector2 tamanhoIcone,
+                                  string titulo, string descricao, string tecla)
+    {
+        Vector2 c = new Vector2(0.5f, 0.5f);
+
+        // Borda (imagem de trás) + fundo (imagem da frente, um pouco menor).
+        var borda = CriarCaixa(nome, pai, Color.white, new Vector2(x, -40), new Vector2(256, 200), true);
+        var fundo = CriarCaixa("Fundo", borda, Color.black, Vector2.zero, Vector2.zero, true);
+        Esticar(fundo);
+        fundo.offsetMin = new Vector2(3, 3);
+        fundo.offsetMax = new Vector2(-3, -3);
+        fundo.GetComponent<Image>().raycastTarget = false;
+
+        var cartao = borda.gameObject.AddComponent<CartaoModo>();
+        cartao.modo = modo;
+        cartao.borda = borda.GetComponent<Image>();
+        cartao.fundo = fundo.GetComponent<Image>();
+        cartao.icone = CriarIcone("Icone", borda, icone, corIcone, new Vector2(0, 58), tamanhoIcone).GetComponent<Image>();
+        cartao.titulo = CriarTexto("Titulo", borda, titulo, 32, TextAnchor.MiddleCenter, c, new Vector2(0, 14), new Vector2(240, 40), Color.white);
+        cartao.descricao = CriarTexto("Descricao", borda, descricao, 16, TextAnchor.MiddleCenter, c, new Vector2(0, -30), new Vector2(240, 44), COR_TEXTO_SUAVE);
+        cartao.recorde = CriarTexto("Recorde", borda, "", 15, TextAnchor.MiddleCenter, c, new Vector2(0, -76), new Vector2(240, 24), new Color(1f, 0.9f, 0.5f));
+
+        // Tecla de atalho no canto
+        var atalho = CriarCaixa("Atalho", borda, new Color(0.85f, 0.88f, 0.95f, 0.9f), new Vector2(-104, 78), new Vector2(28, 28), true);
+        atalho.GetComponent<Image>().raycastTarget = false;
+        var textoAtalho = CriarTexto("Tecla", atalho, tecla, 18, TextAnchor.MiddleCenter, c, Vector2.zero, new Vector2(28, 28), new Color(0.05f, 0.07f, 0.15f));
+        Object.DestroyImmediate(textoAtalho.GetComponent<Shadow>());
+
+        return cartao;
+    }
+
+    static void CriarTecla(Transform pai, string texto, float x, float largura, float y)
+    {
+        var tecla = CriarCaixa("Tecla_" + texto, pai, new Color(0.85f, 0.88f, 0.95f, 0.95f), new Vector2(x, y), new Vector2(largura, 28), true);
+        tecla.GetComponent<Image>().raycastTarget = false;
+        var t = CriarTexto("Texto", tecla, texto, 14, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(largura, 28), new Color(0.05f, 0.07f, 0.15f));
+        t.fontStyle = FontStyle.Bold;
+        Object.DestroyImmediate(t.GetComponent<Shadow>());
+    }
+
+    /// <summary>Texto alinhado à esquerda começando em x.</summary>
+    static void CriarRotulo(Transform pai, string texto, float x, float y, float largura)
+    {
+        CriarTexto("Rotulo_" + texto, pai, texto, 17, TextAnchor.MiddleLeft, new Vector2(0.5f, 0.5f),
+                   new Vector2(x + largura / 2f, y), new Vector2(largura, 28), Color.white);
+    }
+
+    static RectTransform CriarIcone(string nome, Transform pai, Sprite sprite, Color cor, Vector2 posicao, Vector2 tamanho)
+    {
+        var rt = CriarRect(nome, pai);
+        rt.anchoredPosition = posicao;
+        rt.sizeDelta = tamanho;
+        var img = rt.gameObject.AddComponent<Image>();
+        img.sprite = sprite;
+        img.color = cor;
+        img.preserveAspect = true;
+        img.raycastTarget = false;
+        return rt;
+    }
+
+    static RectTransform CriarCaixa(string nome, Transform pai, Color cor, Vector2 posicao, Vector2 tamanho, bool arredondada)
+    {
+        var rt = CriarRect(nome, pai);
+        rt.anchoredPosition = posicao;
+        rt.sizeDelta = tamanho;
+        var img = rt.gameObject.AddComponent<Image>();
+        if (arredondada)
+        {
+            img.sprite = spriteCaixa;
+            img.type = Image.Type.Sliced;
+        }
+        img.color = cor;
+        img.raycastTarget = arredondada;
+        return rt;
+    }
+
+    static void Contorno(Text texto, Color cor)
+    {
+        var contorno = texto.gameObject.AddComponent<Outline>();
+        contorno.effectColor = cor;
+        contorno.effectDistance = new Vector2(3f, -3f);
     }
 
     static RectTransform CriarRect(string nome, Transform pai)
@@ -878,6 +1016,7 @@ public static class MontadorDoJogo
         t.color = cor;
         t.horizontalOverflow = HorizontalWrapMode.Overflow;
         t.verticalOverflow = VerticalWrapMode.Overflow;
+        t.raycastTarget = false;
 
         var sombra = rt.gameObject.AddComponent<Shadow>();
         sombra.effectColor = new Color(0f, 0f, 0f, 0.8f);
