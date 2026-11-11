@@ -858,16 +858,16 @@ public static class MontadorDoJogo
         faixa.anchorMin = new Vector2(0, 1);
         faixa.anchorMax = new Vector2(1, 1);
         faixa.pivot = new Vector2(0.5f, 1);
-        faixa.sizeDelta = new Vector2(0, 84);
+        faixa.sizeDelta = new Vector2(0, 72);
         var imgFaixa = faixa.gameObject.AddComponent<Image>();
-        imgFaixa.color = new Color(0.01f, 0.02f, 0.08f, 0.6f);
+        imgFaixa.color = new Color(0.01f, 0.02f, 0.08f, 0.35f);
         imgFaixa.raycastTarget = false;
         var linha = CriarRect("LinhaFaixa", faixa);
         linha.anchorMin = new Vector2(0, 0);
         linha.anchorMax = new Vector2(1, 0);
         linha.sizeDelta = new Vector2(0, 2);
         var imgLinha = linha.gameObject.AddComponent<Image>();
-        imgLinha.color = new Color(COR_JOGADOR.r, COR_JOGADOR.g, COR_JOGADOR.b, 0.35f);
+        imgLinha.color = new Color(COR_JOGADOR.r, COR_JOGADOR.g, COR_JOGADOR.b, 0.2f);
         imgLinha.raycastTarget = false;
 
         // Pontos: rótulo pequeno + número grande.
@@ -883,7 +883,7 @@ public static class MontadorDoJogo
             var rt = CriarRect("Coracao" + (i + 1), hud);
             rt.anchorMin = rt.anchorMax = topoDir;
             rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.anchoredPosition = new Vector2(-34 - (4 - i) * 33, -50);
+            rt.anchoredPosition = new Vector2(-34 - (4 - i) * 33, -46);
             rt.sizeDelta = new Vector2(27, 24);
             var img = rt.gameObject.AddComponent<Image>();
             img.sprite = s.coracao;
@@ -895,20 +895,10 @@ public static class MontadorDoJogo
             ui.coracoes[i] = img;
         }
 
-        // Caixinha central: ONDA x/5 ou TEMPO mm:ss.
-        var caixa = CriarCaixa("CaixaCentro", hud, new Color(0.35f, 0.85f, 1f, 0.8f), Vector2.zero, new Vector2(124, 58), true);
-        caixa.anchorMin = caixa.anchorMax = topoCentro;
-        caixa.pivot = new Vector2(0.5f, 1);
-        caixa.anchoredPosition = new Vector2(0, -12);
-        caixa.GetComponent<Image>().raycastTarget = false;
-        var miolo = CriarCaixa("Miolo", caixa, new Color(0.04f, 0.08f, 0.2f, 0.95f), Vector2.zero, Vector2.zero, true);
-        Esticar(miolo);
-        miolo.offsetMin = new Vector2(2, 2);
-        miolo.offsetMax = new Vector2(-2, -2);
-        miolo.GetComponent<Image>().raycastTarget = false;
-        Vector2 c = new Vector2(0.5f, 0.5f);
-        ui.textoRotuloCentro = CriarTexto("Rotulo", caixa, "ONDA", 13, TextAnchor.MiddleCenter, c, new Vector2(0, 15), new Vector2(120, 18), COR_TEXTO_SUAVE);
-        ui.textoValorCentro = CriarTexto("Valor", caixa, "1/5", 26, TextAnchor.MiddleCenter, c, new Vector2(0, -8), new Vector2(120, 32), new Color(1f, 0.9f, 0.4f));
+        // Centro: ONDA x/5 ou TEMPO mm:ss (só texto, sem caixa, para não cobrir os inimigos).
+        ui.textoRotuloCentro = CriarTexto("RotuloCentro", hud, "ONDA", 14, TextAnchor.UpperCenter, topoCentro, new Vector2(0, -10), new Vector2(160, 20), COR_TEXTO_SUAVE);
+        ui.textoValorCentro = CriarTexto("ValorCentro", hud, "1/5", 26, TextAnchor.UpperCenter, topoCentro, new Vector2(0, -28), new Vector2(160, 34), new Color(1f, 0.9f, 0.4f));
+        Contorno(ui.textoValorCentro, new Color(0.35f, 0.15f, 0.02f));
 
         // Barras dos poderes ativos (parte de baixo da tela).
         ui.indicadorEscudo = CriarIndicadorPoder(hud, "IndicadorEscudo", s.powerUpEscudo, COR_POWERUP_ESCUDO, 22f);
