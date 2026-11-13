@@ -74,9 +74,20 @@ Assets/
     StarField.cs         fundo de estrelas com parallax
     ProporcaoTela.cs     mantém a proporção da área de jogo
     MolduraTela.cs       moldura em volta da área de jogo
+    CartaoModo.cs        cartões de escolha de modo no menu
+    MenuAnimado.cs       animações do menu
+    MusicManager.cs      música de fundo (menu e partida, com fade)
+    GeradorMusica.cs     compõe as músicas por código
   Editor/
     MontadorDoJogo.cs    monta cena, sprites e prefabs automaticamente
   Sprites/  Prefabs/  Scenes/
 ```
 
-Toda a arte (pixel art) e os sons são gerados por código, sem assets externos.
+Toda a arte (pixel art), os sons e as músicas são gerados por código, sem assets externos.
+
+## Música
+
+- **Menu:** música ambiente lenta (72 BPM), com acordes longos, arpejo suave e eco.
+- **Partida:** música mais animada (128 BPM), com baixo, arpejo rápido e bateria.
+
+As duas tocam em loop, em volume baixo, e trocam entre si com fade. Na pausa o volume abaixa, e no Game Over ou na Vitória a música some para o efeito sonoro aparecer. O volume de cada uma pode ser ajustado no objeto **Musica** (componente `MusicManager`).

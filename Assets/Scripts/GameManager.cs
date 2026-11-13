@@ -125,6 +125,16 @@ public class GameManager : MonoBehaviour
         // Pausar = congelar o tempo do jogo.
         Time.timeScale = (novo == EstadoJogo.Pausado) ? 0f : 1f;
         ui.MostrarEstado(novo);
+
+        // Música de fundo de acordo com o estado.
+        switch (novo)
+        {
+            case EstadoJogo.Menu: MusicManager.TocarMenu(); break;
+            case EstadoJogo.Jogando: MusicManager.TocarJogo(); break;
+            case EstadoJogo.Pausado: MusicManager.Abafar(true); break;
+            case EstadoJogo.GameOver:
+            case EstadoJogo.Vitoria: MusicManager.Parar(); break;
+        }
     }
 
     public void IniciarPartida(ModoJogo modo)

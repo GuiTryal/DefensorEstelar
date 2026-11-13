@@ -556,6 +556,7 @@ public static class MontadorDoJogo
         var gm = gmGO.AddComponent<GameManager>();
         gmGO.AddComponent<AudioSource>().playOnAwake = false;
         gmGO.AddComponent<AudioManager>();
+        new GameObject("Musica").AddComponent<MusicManager>();
         var spawner = gmGO.AddComponent<EnemySpawner>();
         spawner.prefabReto = p.inimigoReto;
         spawner.prefabZigueZague = p.inimigoZigueZague;
