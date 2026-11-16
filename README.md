@@ -80,6 +80,7 @@ Assets/
     GeradorMusica.cs     compõe as músicas por código
   Editor/
     MontadorDoJogo.cs    monta cena, sprites e prefabs automaticamente
+    AbrirCenaPrincipal.cs abre a cena do jogo ao abrir o projeto e faz o Play começar por ela
   Sprites/  Prefabs/  Scenes/
 ```
 
